@@ -1,6 +1,5 @@
 import gym
 from gym import spaces
-import numpy as np
 import copy
 from rendering import *
 import matplotlib.pyplot as plt

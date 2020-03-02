@@ -13,6 +13,7 @@ __pycache__/
 #misc
 assets/
 playground.py
+multitask_crafting_comments.py
 
 # C extensions
 *.so

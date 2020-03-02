@@ -53,12 +53,14 @@ COLORS_rgba = [(110/255.0,69/255.0,39/255.0,.9),(255/255.0,105/255.0,180/255.0,.
 
 # TODO: one-hot encoding, so things aren't similar to each other, tensor like image where one hot is z dimension
 # TODO: maybe explicitly encode x and y as a feature or NOT convolutions - maybe to rbg encoding also?
-class CraftingWorld(gym.Env):
+
+
+class CraftingWorldEnv(gym.Env):
     """Custom Crafting that follows gym interface"""
     metadata = {'render.modes': ['rgb']}
 
     def __init__(self, size=[10, 10], store_gif=True, fixed_init_state=False):
-        super(CraftingWorld, self).__init__()
+        super(CraftingWorldEnv, self).__init__()
         self.num_rows, self.num_cols = size
         self.nS = self.num_rows * self.num_cols
 
@@ -110,7 +112,7 @@ class CraftingWorld(gym.Env):
             elif (current_val % self.divisor) not in [1,2,3]:
                 print('can\'t pick up this object')
             else:
-                print('picked up', CraftingWorld.translate_state_code(current_val%self.divisor))
+                print('picked up', CraftingWorldEnv.translate_state_code(current_val % self.divisor))
                 self.state[self.agent_pos.row,self.agent_pos.col] = ((current_val % self.divisor)+1)*self.divisor
         elif action == 'drop':
             current_val = self.state[self.agent_pos.row, self.agent_pos.col]
@@ -119,7 +121,7 @@ class CraftingWorld(gym.Env):
             elif (current_val % self.divisor) != 0:
                 print('can only drop items on an empty spot')
             else:
-                print('dropped ', CraftingWorld.translate_state_code(current_val % self.divisor))
+                print('dropped ', CraftingWorldEnv.translate_state_code(current_val % self.divisor))
                 self.state[self.agent_pos.row, self.agent_pos.col] = self.divisor + (current_val // self.divisor)-1
         else:
             self.move_agent(action)
@@ -316,7 +318,7 @@ class CraftingWorld(gym.Env):
     def translate_state_space(state):
         human_readable_response = []
         for row in state:
-            human_readable_row = [(CraftingWorld.translate_state_code(code)).center(30) for code in row]
+            human_readable_row = [(CraftingWorldEnv.translate_state_code(code)).center(30) for code in row]
             human_readable_response.append(human_readable_row)
         return human_readable_response
 

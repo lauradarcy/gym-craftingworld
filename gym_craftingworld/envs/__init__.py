@@ -1,0 +1,1 @@
+from gym_craftingworld.envs.craftingworld_env import CraftingWorldEnv

@@ -101,11 +101,12 @@ class CraftingWorldEnv(gym.Env):
             raise NotImplementedError
 
     def step(self, action):
+        action_value = self.ACTIONS[action]
         self.step_num += 1
         # Execute one time step within the environment
-        if action == 'exit':
+        if action_value == 'exit':
             self.done = True
-        elif action == 'pickup':
+        elif action_value == 'pickup':
             current_val = self.state[self.agent_pos.row,self.agent_pos.col]
             if current_val // self.divisor != 1:
                 print('already holding something')
@@ -114,7 +115,7 @@ class CraftingWorldEnv(gym.Env):
             else:
                 print('picked up', CraftingWorldEnv.translate_state_code(current_val % self.divisor))
                 self.state[self.agent_pos.row,self.agent_pos.col] = ((current_val % self.divisor)+1)*self.divisor
-        elif action == 'drop':
+        elif action_value == 'drop':
             current_val = self.state[self.agent_pos.row, self.agent_pos.col]
             if current_val // self.divisor == 1:
                 print('agent isn\'t currently holding anything')
@@ -124,13 +125,13 @@ class CraftingWorldEnv(gym.Env):
                 print('dropped ', CraftingWorldEnv.translate_state_code(current_val % self.divisor))
                 self.state[self.agent_pos.row, self.agent_pos.col] = self.divisor + (current_val // self.divisor)-1
         else:
-            self.move_agent(action)
+            self.move_agent(action_value)
 
         if self.store_gif is True:  # render if required
-            if type(action) == coord:
-                self.render_gif(action.name)
+            if type(action_value) == coord:
+                self.render_gif(action_value.name)
             else:
-                self.render_gif(action)
+                self.render_gif(action_value)
 
         observation = self.state
         reward = self.eval_tasks()

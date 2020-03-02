@@ -6,7 +6,7 @@ with open("README.md", "r") as fh:
 
 setup(name='gym_craftingworld',
     version = '0.0.1',
-    author="Laura D'Arcy",
+    author="Laura D\'Arcy",
     author_email="DArcyL@cardiff.ac.uk",
     description="A gym package for the 2d crafting multitask world",
     long_description=long_description,
@@ -19,5 +19,5 @@ setup(name='gym_craftingworld',
         "Operating System :: OS Independent",
     ],
     python_requires='>=3.6',
-    install_requires = ['gym', 'numpy', 'matplotlib', 'copy', 'random', 'math']
+    install_requires = ['gym', 'numpy', 'matplotlib']
 )

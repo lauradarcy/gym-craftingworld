@@ -27,14 +27,3 @@ class coord(object):
     def __str__(self):
         return str(self.t())
 
-
-
-# class coord(object):
-#     def __init__(self, *args):
-#         self._coord = args
-#     def __add__(self, other):
-#         return coord(*([sum(row) for row in zip(self._coord, other._coord)]))
-#     def __str__(self):
-#         return str(self._coord)
-#     def __repr__(self):
-#         return repr(self._coord)

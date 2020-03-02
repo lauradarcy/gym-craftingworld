@@ -1,11 +1,11 @@
 import gym
 from gym import spaces
 import copy
-from gym_craftingworld.rendering import *
+from gym_craftingworld.envs.rendering import *
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import random
-from gym_craftingworld.coordinates import coord
+from gym_craftingworld.envs.coordinates import coord
 import matplotlib.patches as mpatches
 
 UP = 0

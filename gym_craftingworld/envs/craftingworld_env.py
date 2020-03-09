@@ -7,123 +7,139 @@ import matplotlib.animation as animation
 import random
 from gym_craftingworld.envs.coordinates import coord
 import matplotlib.patches as mpatches
+import os
 
 UP = 0
 RIGHT = 1
 DOWN = 2
 LEFT = 3
 
-
-#ACTIONS = [coord(-1, 0, name='up'), coord(0, 1, name='right'), coord(1, 0, name='down'), coord(0, -1, name='left'), 'pickup', 'drop', 'exit']
-LABELS = ['up','right','down','left','pickup','drop','exit']
-
-
-def categorical_sample(prob_n, np_random):
-    """
-    Sample from categorical distribution
-    Each row specifies class probabilities
-    """
-    prob_n = np.asarray(prob_n)
-    csprob_n = np.cumsum(prob_n)
-    return (csprob_n > np_random.rand()).argmax()
-
-
-AGENT = 'agent'
 PICKUPABLE = [ 'sticks','axe','hammer']
-BLOCKING = ['rock', 'tree']
-
-HOLDING = 'holding'
-CLIP = True
 OBJECTS = ['sticks','axe','hammer', 'rock',  'tree',  'bread',  'house', 'wheat']
-OBJECT_PROBS = [0.25, 0.25, 0.5, 0.00, 0.0, 0.0, 0.0, 0.0]
+OBJECT_RATIOS = [1, 1, 1, 5, 1, 15, 1, 1]
+OBJECT_PROBS = [x/sum(OBJECT_RATIOS) for x in OBJECT_RATIOS]
 
-'''
-0-8, item (or empty for 0)
-
-10-18, agent holding nothing on item (or on nothing for 10)
-20-28, agent holding sticks on item (or on nothing for 20)
-30-38, agent holding axe on item (or on nothing for 30)
-40-48, agent holding hammer on item (or on nothing for 40)
-
-
-'''
 COLORS = [(110,69,39),(255,105,180),(100,100,200), (100,100,100), (0,128,0), (205,133,63),  (197,91,97),(240,230,140)]
-
 COLORS_rgba = [(110/255.0,69/255.0,39/255.0,.9),(255/255.0,105/255.0,180/255.0,.9),(100/255.0,100/255.0,200/255.0,.9), (100/255.0,100/255.0,100/255.0,.9), (0/255.0,128/255.0,0/255.0,.9), (205/255.0,133/255.0,63/255.0,.9),  (197/255.0,91/255.0,97/255.0,.9),(240/255.0,230/255.0,140/255.0,.9)]
 
-# TODO: one-hot encoding, so things aren't similar to each other, tensor like image where one hot is z dimension
+# TODO: check how multigoal worlds work in AI gym, does this affect use of done var, do we give a task to complete, etc
 # TODO: maybe explicitly encode x and y as a feature or NOT convolutions - maybe to rbg encoding also?
 
 
 class CraftingWorldEnv(gym.Env):
     """Custom Crafting that follows gym interface"""
-    metadata = {'render.modes': ['rgb']}
+    multi_goal: bool
+    metadata = {'render.modes': ['rgba','human']}
 
-    def __init__(self, size=[10, 10], store_gif=True, fixed_init_state=False):
+    def __init__(self, size=(10, 10), state_type='one_hot', fixed_init_state=False, multi_goal=False, store_gif=False, max_steps=300):
         super(CraftingWorldEnv, self).__init__()
         self.num_rows, self.num_cols = size
-        self.nS = self.num_rows * self.num_cols
 
-        self.step_num = 0
-        self.ep_no = 0
-
-
-
-        self.divisor = len(OBJECTS) + 1
-        '''state: each object type gets an int, agent holding nothing is 10 (for example) agent holding item is 20 
-        plus int representing object it is holding '''
-
-        # Define action and observation space
-        # They must be gym.spaces objects
-        # Example when using discrete actions:
-        self.ACTIONS = [coord(-1, 0, name='up'), coord(0, 1, name='right'), coord(1, 0, name='down'),
-                   coord(0, -1, name='left'), 'pickup', 'drop', 'exit']
-
-        self.action_space = spaces.Discrete(len(self.ACTIONS))
-
-        self.done = False
-        self.observation_space = spaces.Box(low=0,high=(len(OBJECTS)+1)*(len(PICKUPABLE)+2)-1, shape=(self.num_rows,self.num_cols), dtype=int)
-
-        '''each object has a space on the list, then each place on the list stores the number represents its current 
-        location '''
-
-        self.state, self.agent_pos = self.sample_state()
-        self.init_state = copy.deepcopy(self.state)
-
-        self.store_gif = store_gif
-        if self.store_gif is True:
-            self.fig, self.ax = plt.subplots(1)
-            self.ims = []  # storage of step renderings for gif
-            self.render_gif()
+        self.state_type = state_type
+        if state_type == 'rgb':
+            self.observation_space = spaces.Box(low=0,high=255, shape=(self.num_rows*4, self.num_cols*4, 3), dtype=int)
+        else:  # state_type == 'one_hot':
+            self.observation_space = spaces.Box(low=0,high=1,shape=(self.num_rows, self.num_cols, len(OBJECTS)+1+len(PICKUPABLE)), dtype=int)
 
         self.fixed_init_state = fixed_init_state
         if self.fixed_init_state:
-            raise NotImplementedError
+            self.state = self.fixed_init_state
+            self.agent_pos = coord(int(np.where(np.argmax(self.state, axis=2) == 8)[0]),
+                                   int(np.where(np.argmax(self.state, axis=2) == 8)[1]), self.num_rows - 1,
+                                   self.num_cols - 1)
+
+        else:
+            self.state, self.agent_pos = self.sample_state()
+
+        self.init_state = copy.deepcopy(self.state)
+
+        self.ACTIONS = [coord(-1, 0, name='up'), coord(0, 1, name='right'), coord(1, 0, name='down'),
+                        coord(0, -1, name='left'), 'pickup', 'drop']  # removed exit as a choice
+        self.action_space = spaces.Discrete(len(self.ACTIONS))
+
+        self.multi_goal = multi_goal
+        if self.multi_goal:
+            self.goal = None
+        else:
+            self.goal = 'EatBread'
+        self.goal_list = ['EatBread', 'GoToHouse', 'ChopRock', 'ChopTree', 'BuildHouse', 'MakeBread', 'MoveAxe',
+                 'MoveHammer', 'MoveSticks']
+
+        self.store_gif = store_gif
+        self.fig, self.ax, self.ims = None, None, None
+        self.ep_no = 0
+        self.step_num = 0
+        self.max_steps = max_steps
+
+    def reset(self, init_from_state=None, goal=None):
+        """
+              init_from_state: If a dictionary state is passed here, the environment
+              will reset to that state. Otherwise, the state is randomly initialized.
+              """
+
+        if self.store_gif is True and self.step_num != 0:
+            # print('debug_final', len(self.ims))
+            anim = animation.ArtistAnimation(self.fig, self.ims, interval=100000, blit=False, repeat_delay=1000)
+            anim.save('renders/env{}/episode_{}.gif'.format(self.env_id,self.ep_no), writer=animation.PillowWriter(), dpi=100)
+
+        if init_from_state:
+            self.state = init_from_state
+            self.agent_pos = coord(int(np.where(self.state == 9)[0]),int(np.where(self.state == 9)[1]), self.num_rows-1,
+                                   self.num_cols-1)
+        else:
+            self.state, self.agent_pos = self.sample_state()
+
+        self.init_state = copy.deepcopy(self.state)
+
+        if self.multi_goal:
+            if goal:
+                self.goal = goal
+            else:
+                self.goal = np.random.choice(self.goal_list)
+
+        if self.step_num != 0:
+            self.ep_no += 1
+        self.step_num = 0
+        if self.store_gif:
+            self.fig, self.ax = plt.subplots(1)
+            self.ims = []
+            self.render_gif()
 
     def step(self, action):
         action_value = self.ACTIONS[action]
         self.step_num += 1
         # Execute one time step within the environment
-        if action_value == 'exit':
-            self.done = True
-        elif action_value == 'pickup':
-            current_val = self.state[self.agent_pos.row,self.agent_pos.col]
-            if current_val // self.divisor != 1:
-                print('already holding something')
-            elif (current_val % self.divisor) not in [1,2,3]:
-                print('can\'t pick up this object')
+        current_cell = self.state[self.agent_pos.row, self.agent_pos.col]
+        objects_at_current_location = current_cell[:len(OBJECTS)]
+        holding = current_cell[len(OBJECTS)+1:]
+        if action_value == 'pickup':
+            #print('obj', objects_at_current_location)
+            if objects_at_current_location.any() == 1:  # check there is something at location
+                obj_code = np.argmax(objects_at_current_location)
+                if holding.any() == 1:
+                    pass  #print('already holding something')
+                elif obj_code not in [0, 1, 2]:
+                    pass  #print('can\'t pick up this object')
+                else:
+                    #print('picked up', CraftingWorldEnv.translate_state_code(obj_code))
+                    self.state[self.agent_pos.row, self.agent_pos.col] = self.one_hot(agent=True, holding=obj_code)
+                    #print(self.state[self.agent_pos.row,self.agent_pos.col])
             else:
-                print('picked up', CraftingWorldEnv.translate_state_code(current_val % self.divisor))
-                self.state[self.agent_pos.row,self.agent_pos.col] = ((current_val % self.divisor)+1)*self.divisor
+                pass  #print('nothing at location')
         elif action_value == 'drop':
-            current_val = self.state[self.agent_pos.row, self.agent_pos.col]
-            if current_val // self.divisor == 1:
-                print('agent isn\'t currently holding anything')
-            elif (current_val % self.divisor) != 0:
-                print('can only drop items on an empty spot')
+            if holding.any() == 1:
+                holding_code = np.argmax(holding)
+                if objects_at_current_location.any() == 1:
+                    pass  # print('can only drop items on an empty spot')
+                else:
+                    # print(holding_code)
+                    # print('dropped', CraftingWorldEnv.translate_state_code(holding_code+1))
+                    self.state[self.agent_pos.row, self.agent_pos.col] = self.one_hot(obj=holding_code,agent=True)
+                    # print(self.state[self.agent_pos.row, self.agent_pos.col])
             else:
-                print('dropped ', CraftingWorldEnv.translate_state_code(current_val % self.divisor))
-                self.state[self.agent_pos.row, self.agent_pos.col] = self.divisor + (current_val // self.divisor)-1
+                pass
+                #print('nothing to drop')
+
         else:
             self.move_agent(action_value)
 
@@ -135,7 +151,12 @@ class CraftingWorldEnv(gym.Env):
 
         observation = self.state
         reward = self.eval_tasks()
-        done = self.done
+        done = False if self.step_num < self.max_steps else True
+        if self.multi_goal is False:
+            print(self.step_num)
+            if reward == 1:
+                print('DONE----------------------', self.step_num)
+                done = True
 
         return observation, reward, done, {}
 
@@ -144,60 +165,46 @@ class CraftingWorldEnv(gym.Env):
         if new_pos == self.agent_pos:  # agent is at an edge coordinate
             print('can\'t move, edge of grid')
             return
-        val_at_new_pos = self.state[new_pos.row,new_pos.col]
-        val_at_current_pos = self.state[self.agent_pos.row, self.agent_pos.col]
-
-        item_in_new_loc = val_at_new_pos % self.divisor
-        what_agent_is_holding = val_at_current_pos // self.divisor
-        if item_in_new_loc == 4:                                                                  # rock in new position
-            if what_agent_is_holding != 4:                                                   # agent doesn't have hammer
-                print('can\'t move, rock in way')
+        objects_at_new_pos = self.state[new_pos.row,new_pos.col][:len(OBJECTS)]
+        objects_at_current_pos = self.state[self.agent_pos.row, self.agent_pos.col][:len(OBJECTS)]
+        holding_at_current_pos = self.state[self.agent_pos.row, self.agent_pos.col][len(OBJECTS)+1:]
+        # print('move',self.agent_pos.row, self.agent_pos.col,objects_at_new_pos, holding_at_current_pos)
+        item_in_new_loc = (np.argmax(objects_at_new_pos) if objects_at_new_pos.any() == 1 else None)
+        # print('iteminnewloc',item_in_new_loc)
+        what_agent_is_holding = (np.argmax(holding_at_current_pos) if holding_at_current_pos.any() == 1 else None)
+        if item_in_new_loc == 3:                                                                  # rock in new position
+            if what_agent_is_holding != 2:                                                   # agent doesn't have hammer
+                #print('can\'t move, rock in way')
                 return
             else:                                                                               # agent does have hammer
-                val_at_new_pos = 0                                                                         # remove rock
+                item_in_new_loc = None                                                                         # remove rock
 
-        if item_in_new_loc == 5:                                                                  # tree in new position
-            if what_agent_is_holding != 3:                                                       # agent not holding axe
-                print('can\'t move, tree in way')
+        elif item_in_new_loc == 4:                                                                  # tree in new position
+            if what_agent_is_holding != 1:                                                       # agent not holding axe
+                #print('can\'t move, tree in way')
                 return
             else:                                                                                  # agent does have axe
-                val_at_new_pos = 1                                                               # turn tree into sticks
+                item_in_new_loc = 0                                                               # turn tree into sticks
 
-        if item_in_new_loc == 1:                                                                # sticks in new position
-            if what_agent_is_holding == 4:                                                            # agent has hammer
-                val_at_new_pos = 7                                                              # turn sticks into house
+        elif item_in_new_loc == 0:                                                                # sticks in new position
+            if what_agent_is_holding == 2:                                                            # agent has hammer
+                item_in_new_loc = 6                                                              # turn sticks into house
 
-        if item_in_new_loc == 8:                                                                # wheat in new position
-            if what_agent_is_holding == 3:                                                        # agent has axe
-                val_at_new_pos = 6                                                              # turn wheat into bread
+        elif item_in_new_loc == 7:                                                                # wheat in new position
+            if what_agent_is_holding == 1:                                                        # agent has axe
+                item_in_new_loc = 5                                                              # turn wheat into bread
 
-        if item_in_new_loc == 6:                                                                # bread in new position
+        elif item_in_new_loc == 5:                                                                # bread in new position
             print('removed bread')
-            val_at_new_pos = 0
+            item_in_new_loc = None
+        # print('type2',type(item_in_new_loc),item_in_new_loc)
+        self.state[new_pos.row, new_pos.col] = self.one_hot(obj=item_in_new_loc,agent=True, holding=what_agent_is_holding)
+        object_in_old_pos = np.argmax(objects_at_current_pos) if objects_at_current_pos.any() == 1 else None
+        # print('type',type(object_in_old_pos))
+        self.state[self.agent_pos.row, self.agent_pos.col] = self.one_hot(obj=object_in_old_pos,agent=False, holding=None)
+        self.agent_pos = new_pos
 
-        self.state[new_pos.row, new_pos.col], self.state[self.agent_pos.row, self.agent_pos.col], self.agent_pos = \
-            val_at_new_pos % self.divisor + (val_at_current_pos // self.divisor)*self.divisor, \
-            val_at_current_pos % self.divisor, new_pos
-
-    def reset(self, init_from_state=None):
-        """
-              init_from_state: If a dictionary state is passed here, the environment
-              will reset to that state. Otherwise, the state is randomly initialized.
-              """
-        if init_from_state:
-            self.state = init_from_state
-            self.agent_pos = coord(int(np.where(self.state == 9)[0]),int(np.where(self.state == 9)[1]), self.num_rows-1,
-                                   self.num_cols-1)
-        else:
-            self.state, self.agent_pos = self.sample_state()
-
-        self.ep_no += 1
-        self.step_num = 0
-        if self.store_gif:
-            self.fig, self.ax = plt.subplots(1)
-            self.ims = []
-
-    def render(self, state=None, tile_size=4):
+    def render(self, mode='Non', state=None, tile_size=4):
         """
             Render this grid at a given scale
             :param r: target renderer object
@@ -205,40 +212,46 @@ class CraftingWorldEnv(gym.Env):
             """
         if state is None:
             state = self.state
-        height, width = state.shape
+
+        height, width = state.shape[0], state.shape[1]
         # Compute the total grid size
-        width_px = width * tile_size
-        height_px = height * tile_size
-
+        width_px, height_px = width * tile_size, height * tile_size
         img = np.zeros(shape=(height_px, width_px, 3), dtype=np.uint8)
-        # Render the grid
 
+        # Render the grid
         for j in range(0, height):
             for i in range(0, width):
                 color = (0,0,0)
                 agent_color = None
                 agent_holding = None
-                cell = state[j, i]
-                if cell % self.divisor != 0:
-                    color = COLORS[cell % self.divisor - 1]
-                if cell // self.divisor != 0:
-                    agent_color = (250,250,250)
-                    if cell//self.divisor > 1:
-                        agent_holding = COLORS[cell // self.divisor - 2]
-                tile_img = np.zeros(shape=(tile_size, tile_size, 3), dtype=np.uint8)
 
+                cell = state[j, i]
+                objects = np.argmax(cell[:len(OBJECTS)]) if cell[:len(OBJECTS)].any() == 1 else None
+                agent = cell[len(OBJECTS)]
+                holding = np.argmax(cell[len(OBJECTS)+1:]) if cell[len(OBJECTS)+1:].any() == 1 else None
+
+                if objects is not None:
+                    color = COLORS[objects]
+                if agent:
+                    agent_color = (250, 250, 250)
+                if holding is not None:
+                    agent_holding = COLORS[holding]
+
+                tile_img = np.zeros(shape=(tile_size, tile_size, 3), dtype=np.uint8)
                 make_tile(tile_img, color, agent_color, agent_holding)
 
-                ymin = j * tile_size
-                ymax = (j + 1) * tile_size
-                xmin = i * tile_size
-                xmax = (i + 1) * tile_size
+                ymin, ymax = j * tile_size, (j + 1) * tile_size
+                xmin, xmax = i * tile_size, (i + 1) * tile_size
                 img[ymin:ymax, xmin:xmax, :] = tile_img
 
+        if mode == 'human':
+            fig2, ax2 = plt.subplots(1)
+            ax2.imshow(img)
+            fig2.show()
         return img
 
     def render_gif(self, action_label=None):
-        img2 = self.render()
+        img2 = self.render(mode='Non')
         im = plt.imshow(img2, animated=True)
         if action_label is None:
             title_str = ''
@@ -252,28 +265,39 @@ class CraftingWorldEnv(gym.Env):
         plt.legend(handles=patches, bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
         self.ims.append([im, ttl])
 
-        if action_label == 'exit':  #finish episode
-            anim = animation.ArtistAnimation(self.fig, self.ims, interval=100000,blit=False, repeat_delay=1000)
-            anim.save('test_render{}.gif'.format(self.ep_no), writer=animation.PillowWriter(), dpi=100)
 
     def sample_state(self):
         num_objects = np.random.randint(4*(self.num_rows//4)*3, 5*(self.num_rows//5)*4)
-        objects = [i+1 for i in np.random.choice(len(OBJECTS), num_objects, OBJECT_PROBS)]
+        #print('num_objects', num_objects)
+        objects = [i+1 for i in np.random.choice(len(OBJECTS), num_objects, p=OBJECT_PROBS)]
         objects.append(9)
+        objects2 = [self.one_hot(i - 1) for i in objects]
+        #print('objects', objects, objects2)
         grid = objects+[0 for _ in range(self.num_rows*self.num_cols-len(objects))]
+        grid2 = objects2+[[0 for _ in range(self.observation_space.shape[2])] for _ in range(self.num_rows*self.num_cols-len(objects))]
+        #print('grid',grid, grid2)
+        random.shuffle(grid2)
         random.shuffle(grid)
+        state2 = np.asarray(grid2, dtype=int).reshape(self.observation_space.shape)
+        #print('ghskljdlk',state2, np.where(state2 == self.one_hot(8)))
         state = np.asarray(grid, dtype=int).reshape((self.num_rows,self.num_cols))
-        agent_position = coord(int(np.where(state == 9)[0]),int(np.where(state == 9)[1]),
-                               self.num_rows-1, self.num_cols-1)
-        return state, agent_position
+        #self.render(state=state2, mode='human')
+        # print('where',np.where(np.argmax(state2, axis=2) == 8))
+        agent_position = coord(int(np.where(np.argmax(state2, axis=2) == 8)[0]), int(np.where(np.argmax(state2, axis=2) == 8)[1]), self.num_rows-1, self.num_cols-1)
+        # print(self.one_hot(8), np.argmax(self.one_hot(8)))
+        # agent_position = coord(int(np.where(state == 9)[0]),int(np.where(state == 9)[1]),
+        #                        self.num_rows-1, self.num_cols-1)
+
+        return state2, agent_position
 
     def eval_tasks(self):
         # tasks = ['EatBread', 'GoToHouse', 'ChopRock', 'ChopTree', 'BuildHouse', 'MakeBread', 'MoveAxe',
         # 'MoveHammer', "MoveSticks"]
         task_success = {}
-        init_objects = {obj: self.get_objects(code+1, self.init_state) for code,obj in enumerate(OBJECTS)}
-        final_objects = {obj: self.get_objects(code+1, self.state) for code,obj in enumerate(OBJECTS)}
+        init_objects = {obj: self.get_objects(code, self.init_state) for code,obj in enumerate(OBJECTS)}
 
+        final_objects = {obj: self.get_objects(code, self.state) for code,obj in enumerate(OBJECTS)}
+        #print('final_objects', final_objects)
         task_success['MakeBread'] = len(final_objects['wheat']) < len(init_objects['wheat'])
         task_success['EatBread'] = (len(final_objects['bread']) + len(final_objects['wheat'])) < (
             len(init_objects['bread']) + len(init_objects['wheat']))
@@ -285,35 +309,55 @@ class CraftingWorldEnv(gym.Env):
         task_success['MoveHammer'] = final_objects['hammer'] != init_objects['hammer']
         task_success['MoveSticks'] = False in [stick in init_objects['sticks'] for stick in final_objects['sticks']]
 
+        if self.multi_goal is False:
+            #print('mgf')
+            print(self.goal)
+            print(task_success[self.goal])
+            task_success = 1 if task_success[self.goal] is True else 0
+            if task_success == 1 and self.step_num==1:
+                print('issue:\n', init_objects,'\n', final_objects)
+            #print('tasksuccess',task_success)
         #task_list = [task_success[key] for key in self.tasks]
         return task_success
 
     def get_objects(self, code, state):
-        code_variants = [(i * self.divisor) + code for i in range(5)]
+        code_variants = [code]
+        if code<3:
+            code_variants.append(code+9)
+        # print(code, self.translate_state_code(code), code_variants)
         locations = []
-        for c in code_variants:
-            rows, cols = np.where(state == c)
-            coordinates = list(zip(rows, cols))
-            locations += coordinates
+        for i in range(self.num_rows):
+            for j in range(self.num_cols):
+                for c in code_variants:
+                    if state[i,j,c] == 1:
+                        locations += [[i,j]]
         return locations
+
+    def allow_gif_storage(self, store_gif=True, id=None):
+        self.store_gif = store_gif
+        if self.store_gif is True:
+            if id:
+                self.env_id=id
+            else:
+                self.env_id = random.randint(0, 1000000)
+            os.makedirs('renders/env{}'.format(self.env_id), exist_ok=False)
+            self.fig, self.ax = plt.subplots(1)
+            self.ims = []  # storage of step renderings for gif
+            self.render_gif()
 
     @staticmethod
     def translate_state_code(code):
-        divisor = len(OBJECTS) + 1
+        return OBJECTS[code]
 
-        if code // divisor == 0:
-            string_part_one = ''
-        elif code // divisor == 1:
-            string_part_one = 'Agent'
-        else:
-            string_part_one = 'Agent holding ' + PICKUPABLE[code // divisor - 2]
-        if code % divisor == 0:
-            string_part_two = ''
-        elif code // divisor != 0:
-            string_part_two = ', ' + OBJECTS[code % divisor - 1]
-        else:
-            string_part_two = OBJECTS[code % divisor - 1]
-        return string_part_one + string_part_two
+    def one_hot(self, obj=None, agent=False, holding=None):
+        row = [0 for _ in range(self.observation_space.shape[2])]
+        if obj is not None:
+            row[obj] = 1
+        if agent:
+            row[8] = 1
+        if holding is not None:
+            row[holding+9] = 1
+        return row
 
     @staticmethod
     def translate_state_space(state):

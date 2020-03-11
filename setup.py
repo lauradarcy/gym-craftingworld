@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setup(name='gym_craftingworld',
-    version = '0.0.1',
+    version = '0.1.0',
     author="Laura D\'Arcy",
     author_email="DArcyL@cardiff.ac.uk",
     description="A gym package for the 2d crafting multitask world",

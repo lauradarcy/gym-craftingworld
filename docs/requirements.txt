@@ -1,4 +1,4 @@
 gym
 numpy
 pillow
-gym_craftingworld
+gym-craftingworld

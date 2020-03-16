@@ -1,3 +1,4 @@
 gym
 numpy
 pillow
+gym_craftingworld

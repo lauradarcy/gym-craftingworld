@@ -8,7 +8,7 @@ CraftingWorld: a multitask environment for gym
 
 .. image:: assets/example.gif
   :scale: 100 %
-  :alt:
+  :alt: example of environment
 
 .. toctree::
    :maxdepth: 2

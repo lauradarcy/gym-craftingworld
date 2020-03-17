@@ -3,7 +3,6 @@
    :caption: Tutorials and Guides:
 
    tutorials/index
-   tutorials/first_agent
 
 .. toctree::
    :maxdepth: 2
@@ -17,4 +16,3 @@
    :caption: Notes:
 
    notes/upcoming
-   notes/contribute

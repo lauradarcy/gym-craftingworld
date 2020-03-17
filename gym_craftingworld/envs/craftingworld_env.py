@@ -31,7 +31,7 @@ class CraftingWorldEnv(gym.Env):
     """Custom Crafting that follows gym interface"""
     metadata = {'render.modes': ['human', 'Non']}
 
-    def __init__(self, size=(10, 10), fixed_init_state=None, store_gif=False, max_steps=300):
+    def __init__(self, size=(10, 10), fixed_init_state=None, store_gif=False, max_steps=300, object_ratios = (1, 1, 1, 1, 1, 1, 1, 1)):
         """
         initialise the environment, change the following args to create a custom environment
         :param size: size of the grid world
@@ -56,6 +56,7 @@ class CraftingWorldEnv(gym.Env):
                                    int(np.where(np.argmax(self.state, axis=2) == 8)[1]), self.num_rows - 1,
                                    self.num_cols - 1)
         else:
+            self.object_probabilities = [x/sum(object_ratios) for x in object_ratios]
             self.state, self.agent_pos = self.sample_state()
 
         self.init_state = copy.deepcopy(self.state)
@@ -96,7 +97,7 @@ class CraftingWorldEnv(gym.Env):
         if self.store_gif:
             self.fig, self.ax = plt.subplots(1)
             self.ims = []
-            self.__render_gif__()
+            self.__render_gif()
 
     def step(self, action):
         """
@@ -136,14 +137,14 @@ class CraftingWorldEnv(gym.Env):
                     self.state[self.agent_pos.row, self.agent_pos.col] = self.one_hot(obj=what_agent_is_holding,
                                                                                       agent=True)
         else:
-            self.__move_agent__(action_value)
+            self.__move_agent(action_value)
 
         # render if required
         if self.store_gif is True:
             if type(action_value) == coord:
-                self.__render_gif__(action_value.name)
+                self.__render_gif(action_value.name)
             else:
-                self.__render_gif__(action_value)
+                self.__render_gif(action_value)
 
         observation = self.state
         reward = self.eval_tasks()
@@ -151,7 +152,7 @@ class CraftingWorldEnv(gym.Env):
 
         return observation, reward, done, {}
 
-    def __move_agent__(self, action):
+    def __move_agent(self, action):
         """
         updates the encoding of two locations in self.state, the old position and the new position.
 
@@ -163,7 +164,6 @@ class CraftingWorldEnv(gym.Env):
         then the function updates the encoding of the state
 
         :param action: one of the movement actions, stored as a coordinate object. coordinate class makes it easier to ensure agent doesn't move outside the grid
-
         """
 
         new_pos = self.agent_pos + action
@@ -216,7 +216,7 @@ class CraftingWorldEnv(gym.Env):
     def render(self, mode='Non', state=None, tile_size=4):
         """
 
-        :param mode: 'Non' returns the rbg encoding for use in __render_gif__(). 'human' also plots for user.
+        :param mode: 'Non' returns the rbg encoding for use in __render_gif(). 'human' also plots for user.
         :param state: the state needed to render. if None, will render current state
         :param tile_size: the number of pixels per cell, default 4
         :return: rgb image encoded as a numpy array
@@ -263,7 +263,7 @@ class CraftingWorldEnv(gym.Env):
 
         return img
 
-    def __render_gif__(self, action_label=None):
+    def __render_gif(self, action_label=None):
         img2 = self.render(mode='Non')
         im = plt.imshow(img2, animated=True)
         if action_label is None:
@@ -283,9 +283,12 @@ class CraftingWorldEnv(gym.Env):
         produces a sample state to start a new episode with
         :return: a random state to start, along with position of agent
         """
-        num_objects = np.random.randint(4*(self.num_rows//4)*3, 5*(self.num_rows//5)*4)
+        available_tiles = self.num_rows*self.num_cols
+        min_num_objects = 3 * max(available_tiles // 20, 1)
+        max_num_objects = min(12 * max(available_tiles // 20, 1), available_tiles-1)
+        num_objects = np.random.randint(min_num_objects,max_num_objects)
 
-        objects = [i+1 for i in np.random.choice(len(OBJECTS), num_objects, p=OBJECT_PROBS)]
+        objects = [i+1 for i in np.random.choice(len(OBJECTS), num_objects, p=self.object_probabilities)]
         objects.append(9)
         objects = [self.one_hot(i - 1) for i in objects]
         grid = objects+[[0 for _ in range(self.observation_space.shape[2])]
@@ -352,7 +355,7 @@ class CraftingWorldEnv(gym.Env):
             os.makedirs('renders/env{}'.format(self.env_id), exist_ok=False)
             self.fig, self.ax = plt.subplots(1)
             self.ims = []  # storage of step renderings for gif
-            self.__render_gif__()
+            self.__render_gif()
 
     def one_hot(self, obj=None, agent=False, holding=None):
         row = [0 for _ in range(self.observation_space.shape[2])]

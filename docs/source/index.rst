@@ -20,7 +20,6 @@ CraftingWorld: a multitask environment for gym
    :caption: Tutorials and Guides:
 
    tutorials/index
-   tutorials/first_agent
 
 .. toctree::
    :maxdepth: 2
@@ -34,7 +33,6 @@ CraftingWorld: a multitask environment for gym
    :caption: Notes:
 
    notes/upcoming
-   notes/contribute
 
 
 

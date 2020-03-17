@@ -1,3 +1,15 @@
+CraftingWorld: a multitask environment for gym
+===================================================
+
+.. image:: https://badge.fury.io/py/gym-craftingworld.svg
+    :target: https://badge.fury.io/py/gym-craftingworld
+.. image:: https://img.shields.io/badge/License-BSD%202--Clause-orange.svg
+    :target: https://github.com/lauradarcy/gym-craftingworld/blob/master/LICENSE
+
+.. image:: assets/example.gif
+  :scale: 100 %
+  :alt:
+
 .. toctree::
    :maxdepth: 2
    :caption: Tutorials and Guides:
@@ -16,3 +28,12 @@
    :caption: Notes:
 
    notes/upcoming
+
+
+
+Indices and tables
+==================
+
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`

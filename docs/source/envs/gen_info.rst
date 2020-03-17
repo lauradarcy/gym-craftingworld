@@ -83,12 +83,7 @@ General Information
         print(usage_str)
 
 
-    from gym.envs.registration import register
 
-    register(id='craftingworld-v2',
-         entry_point='gym_craftingworld.envs:CraftingWorldEnv',
-         kwargs={'size': (5,5)}
-         )
     ids = [
            'craftingworld-v0',
             'craftingworld-v2',

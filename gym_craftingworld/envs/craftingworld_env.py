@@ -285,7 +285,7 @@ class CraftingWorldEnv(gym.Env):
         """
         available_tiles = self.num_rows*self.num_cols
         min_num_objects = 3 * max(available_tiles // 20, 1)
-        max_num_objects = min(12 * max(available_tiles // 20, 1), available_tiles-1)
+        max_num_objects = min(9 * max(available_tiles // 20, 1), available_tiles-1)
         num_objects = np.random.randint(min_num_objects,max_num_objects)
 
         objects = [i+1 for i in np.random.choice(len(OBJECTS), num_objects, p=self.object_probabilities)]

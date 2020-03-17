@@ -33,7 +33,7 @@ class CraftingWorldEnv(gym.Env):
 
     def __init__(self, size=(10, 10), fixed_init_state=None, store_gif=False, max_steps=300):
         """
-
+        initialise the environment, change the following args to create a custom environment
         :param size: size of the grid world
         :param fixed_init_state: an initial state to reset to if desired
         :param store_gif: whether or not to store every episode as a gif in a /renders/ subdirectory
@@ -72,8 +72,7 @@ class CraftingWorldEnv(gym.Env):
 
     def reset(self):
         """
-        reset environment
-        :return:
+        reset the environment
         """
         if self.store_gif is True and self.step_num != 0:
             # print('debug_final', len(self.ims))
@@ -101,8 +100,8 @@ class CraftingWorldEnv(gym.Env):
 
     def step(self, action):
         """
-
-        :param action: int value
+        take a step within the environment
+        :param action: integer value within the action_space range
         :return: observations, reward, done, debugging info
         """
         action_value = self.ACTIONS[action]
@@ -164,7 +163,7 @@ class CraftingWorldEnv(gym.Env):
         then the function updates the encoding of the state
 
         :param action: one of the movement actions, stored as a coordinate object. coordinate class makes it easier to ensure agent doesn't move outside the grid
-        :return:
+
         """
 
         new_pos = self.agent_pos + action
@@ -220,7 +219,7 @@ class CraftingWorldEnv(gym.Env):
         :param mode: 'Non' returns the rbg encoding for use in __render_gif__(). 'human' also plots for user.
         :param state: the state needed to render. if None, will render current state
         :param tile_size: the number of pixels per cell, default 4
-        :return: img encoded as rgb
+        :return: rgb image encoded as a numpy array
         """
         if state is None:
             state = self.state
@@ -341,11 +340,10 @@ class CraftingWorldEnv(gym.Env):
 
     def allow_gif_storage(self, store_gif=True):
         """
-        turn on or off gif storage, this is a separate function because it create a new subdirectory,
+        turns on or off gif storage, this is a separate function because it create a new subdirectory,
         so wanted the user to have to explicitly call this function
 
         :param store_gif: a boolean, set to true to turn on gif storage.
-        :return:
         """
         self.store_gif = store_gif
         if self.store_gif is True:

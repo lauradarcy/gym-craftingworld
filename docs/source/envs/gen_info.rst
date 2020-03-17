@@ -86,7 +86,7 @@ General Information
 
     ids = [
            'craftingworld-v0',
-            'craftingworld-trees-axes-hammers',
+            'craftingworld-v2',
            ]
 
     for i in ids:

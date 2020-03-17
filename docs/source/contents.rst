@@ -6,9 +6,10 @@ CraftingWorld: a multitask environment for gym
 .. image:: https://img.shields.io/badge/License-BSD%202--Clause-orange.svg
     :target: https://github.com/lauradarcy/gym-craftingworld/blob/master/LICENSE
 
-.. image:: assets/example.gif
-  :scale: 100 %
-  :alt: example of environment
+.. only:: html
+   .. image:: assets/example.gif
+      :scale: 100 %
+      :alt: example of environment
 
 .. toctree::
    :maxdepth: 2

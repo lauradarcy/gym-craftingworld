@@ -97,7 +97,7 @@ class CraftingWorldEnv(gym.Env):
         if self.store_gif:
             self.fig, self.ax = plt.subplots(1)
             self.ims = []
-            self.render_gif()
+            self.__render_gif__()
 
     def step(self, action):
         """
@@ -137,14 +137,14 @@ class CraftingWorldEnv(gym.Env):
                     self.state[self.agent_pos.row, self.agent_pos.col] = self.one_hot(obj=what_agent_is_holding,
                                                                                       agent=True)
         else:
-            self.move_agent(action_value)
+            self.__move_agent__(action_value)
 
         # render if required
         if self.store_gif is True:
             if type(action_value) == coord:
-                self.render_gif(action_value.name)
+                self.__render_gif__(action_value.name)
             else:
-                self.render_gif(action_value)
+                self.__render_gif__(action_value)
 
         observation = self.state
         reward = self.eval_tasks()
@@ -152,7 +152,7 @@ class CraftingWorldEnv(gym.Env):
 
         return observation, reward, done, {}
 
-    def move_agent(self, action):
+    def __move_agent__(self, action):
         """
         updates the encoding of two locations in self.state, the old position and the new position.
 
@@ -163,8 +163,7 @@ class CraftingWorldEnv(gym.Env):
 
         then the function updates the encoding of the state
 
-        :param action: one of the movement actions, stored as a coordinate object.
-        coordinate class makes it easier to ensure agent doesn't move outside the grid
+        :param action: one of the movement actions, stored as a coordinate object. coordinate class makes it easier to ensure agent doesn't move outside the grid
         :return:
         """
 
@@ -218,7 +217,7 @@ class CraftingWorldEnv(gym.Env):
     def render(self, mode='Non', state=None, tile_size=4):
         """
 
-        :param mode: 'Non' returns the rbg encoding for use in render_gif(). 'human' also plots for user
+        :param mode: 'Non' returns the rbg encoding for use in __render_gif__(). 'human' also plots for user.
         :param state: the state needed to render. if None, will render current state
         :param tile_size: the number of pixels per cell, default 4
         :return: img encoded as rgb
@@ -265,7 +264,7 @@ class CraftingWorldEnv(gym.Env):
 
         return img
 
-    def render_gif(self, action_label=None):
+    def __render_gif__(self, action_label=None):
         img2 = self.render(mode='Non')
         im = plt.imshow(img2, animated=True)
         if action_label is None:
@@ -282,7 +281,7 @@ class CraftingWorldEnv(gym.Env):
 
     def sample_state(self):
         """
-
+        produces a sample state to start a new episode with
         :return: a random state to start, along with position of agent
         """
         num_objects = np.random.randint(4*(self.num_rows//4)*3, 5*(self.num_rows//5)*4)
@@ -323,10 +322,11 @@ class CraftingWorldEnv(gym.Env):
 
     def get_objects(self, code, state):
         """
-        gets the locations for each type of object within a state
-        :param code:
-        :param state:
-        :return:
+        returns the locations for a particular type object within a state
+
+        :param code: the code of the object, which is the index of the object within the one-hot encoding
+        :param state: the state to search in
+        :return: a list of locations where the object is $[[i_1,j_1],[i_2,j_2],...,[i_n,j_n]]$
         """
         code_variants = [code]
         if code < 3:
@@ -342,8 +342,9 @@ class CraftingWorldEnv(gym.Env):
     def allow_gif_storage(self, store_gif=True):
         """
         turn on or off gif storage, this is a separate function because it create a new subdirectory,
-        so wanted user to have to explicitly call this function
-        :param store_gif: bool
+        so wanted the user to have to explicitly call this function
+
+        :param store_gif: a boolean, set to true to turn on gif storage.
         :return:
         """
         self.store_gif = store_gif
@@ -353,7 +354,7 @@ class CraftingWorldEnv(gym.Env):
             os.makedirs('renders/env{}'.format(self.env_id), exist_ok=False)
             self.fig, self.ax = plt.subplots(1)
             self.ims = []  # storage of step renderings for gif
-            self.render_gif()
+            self.__render_gif__()
 
     def one_hot(self, obj=None, agent=False, holding=None):
         row = [0 for _ in range(self.observation_space.shape[2])]

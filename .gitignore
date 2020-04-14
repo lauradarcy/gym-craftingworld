@@ -15,6 +15,8 @@ playground.py
 multitask_crafting_comments.py
 craftingworld_env2.py
 craftingworld_env_one_hot.py
+crafting_world_rgb.py
+old_crafting.py
 
 # C extensions
 *.so

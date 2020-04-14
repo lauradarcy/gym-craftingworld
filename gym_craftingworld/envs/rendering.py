@@ -129,13 +129,13 @@ def point_in_rect(xmin, xmax, ymin, ymax):
 #     img[:, :, :] = blend_img
 #
 #
-# def render2(state, tile_size=4):
+# def render2(obs, tile_size=4):
 #     """
 #         Render this grid at a given scale
 #         :param r: target renderer object
 #         :param tile_size: tile size in pixels
 #         """
-#     height,width = state.shape
+#     height,width = obs.shape
 #
 #     # Compute the total grid size
 #     width_px = width * tile_size
@@ -145,7 +145,7 @@ def point_in_rect(xmin, xmax, ymin, ymax):
 #     # Render the grid
 #     for j in range(0, height):
 #         for i in range(0, width):
-#             cell = state[j,i]
+#             cell = obs[j,i]
 #             print('cell',cell)
 #             divisor = 9
 #             print(cell%divisor)

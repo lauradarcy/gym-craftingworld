@@ -8,6 +8,7 @@ import random
 from gym_craftingworld.envs.coordinates import coord
 import matplotlib.patches as mpatches
 import os
+from textwrap import wrap
 
 UP = 0
 RIGHT = 1
@@ -22,47 +23,76 @@ OBJECT_PROBS = [x/sum(OBJECT_RATIOS) for x in OBJECT_RATIOS]
 
 COLORS = [(110,69,39),(255,105,180),(100,100,200), (100,100,100), (0,128,0), (205,133,63),  (197,91,97),(240,230,140)]
 COLORS_rgba = [(110/255.0,69/255.0,39/255.0,.9),(255/255.0,105/255.0,180/255.0,.9),(100/255.0,100/255.0,200/255.0,.9), (100/255.0,100/255.0,100/255.0,.9), (0/255.0,128/255.0,0/255.0,.9), (205/255.0,133/255.0,63/255.0,.9),  (197/255.0,91/255.0,97/255.0,.9),(240/255.0,230/255.0,140/255.0,.9)]
-
+TASK_COLORS = ['red','green']
+TASK_LIST = ['MakeBread','EatBread','BuildHouse','ChopTree','ChopRock','GoToHouse','MoveAxe','MoveHammer','MoveSticks']
 # TODO: check how multigoal worlds work in AI gym, does this affect use of done var, do we give a task to complete, etc
 # TODO: maybe explicitly encode x and y as a feature or NOT convolutions - maybe to rbg encoding also?
 
 
-class CraftingWorldEnv(gym.Env):
+class CraftingWorldEnv(gym.GoalEnv):
     """Custom Crafting that follows gym interface"""
     metadata = {'render.modes': ['human', 'Non']}
 
-    def __init__(self, size=(10, 10), fixed_init_state=None, store_gif=False, max_steps=300, object_ratios = (1, 1, 1, 1, 1, 1, 1, 1)):
+    def __init__(self, size=(10, 10), fixed_init_state=None, fixed_goal=None, tasks_to_ignore=None, store_gif=False, max_steps=300, task_list=TASK_LIST):
         """
         initialise the environment, change the following args to create a custom environment
         :param size: size of the grid world
-        :param fixed_init_state: an initial state to reset to if desired
+        :param fixed_init_state: an initial observation to reset to if desired
+        :param fixed_goal: a fixed list of tasks for the agent to achieve
+        :param tasks_to_ignore: a list of tasks that won't affect the reward regardless of completion
         :param store_gif: whether or not to store every episode as a gif in a /renders/ subdirectory
         :param max_steps: max number of steps the agent can take
         """
-        super(CraftingWorldEnv, self).__init__()
+        self.metadata = {'render.modes': ['human', 'Non']}
+
         self.num_rows, self.num_cols = size
 
         self.max_steps = max_steps
 
-        self.observation_space = spaces.Box(low=0, high=1,
-                                            shape=(self.num_rows, self.num_cols, len(OBJECTS)+1+len(PICKUPABLE)),
-                                            dtype=int)
+        self.task_list = task_list
+        if tasks_to_ignore:
+            for task in tasks_to_ignore:
+                self.task_list.remove(task)
 
+        self.observation_space = spaces.Dict({'observation':spaces.Box(low=0, high=1,
+                                            shape=(self.num_rows, self.num_cols, len(OBJECTS)+1+len(PICKUPABLE)),
+                                            dtype=int),'desired_goal':spaces.Box(low=0, high=1,
+                                            shape=(1,len(self.task_list)),
+                                            dtype=int),'achieved_goal':spaces.Box(low=0, high=1,
+                                            shape=(1,len(self.task_list)),
+                                            dtype=int),})
+        # TODO: wrapper that flattens to regular env, wrapper that changes desired goal to dict of rewards, reward wrapper
+
+        self.fixed_goal = fixed_goal
+        if self.fixed_goal:
+            self.desired_goal = np.zeros(shape=(1, len(self.task_list)), dtype=int)
+            for goal in self.fixed_goal:
+                if goal not in self.task_list:
+                    self.fixed_goal.remove(goal)
+                    continue
+                self.desired_goal[0][self.task_list.index(goal)] = 1
+        else:
+            self.desired_goal = np.random.randint(2, size=(1, len(self.task_list)))
+
+        print('jk',self.desired_goal,type(self.desired_goal))
+        self.achieved_goal = self.observation_space.spaces['achieved_goal'].low
+        print('desired_goal',self.desired_goal,'achieved_goal',self.achieved_goal)
         self.fixed_init_state = fixed_init_state
 
         if self.fixed_init_state:
-            self.state = self.fixed_init_state
-            self.agent_pos = coord(int(np.where(np.argmax(self.state, axis=2) == 8)[0]),
-                                   int(np.where(np.argmax(self.state, axis=2) == 8)[1]), self.num_rows - 1,
+            self.obs = self.fixed_init_state
+            self.agent_pos = coord(int(np.where(np.argmax(self.obs, axis=2) == 8)[0]),
+                                   int(np.where(np.argmax(self.obs, axis=2) == 8)[1]), self.num_rows - 1,
                                    self.num_cols - 1)
         else:
-            self.object_probabilities = [x/sum(object_ratios) for x in object_ratios]
-            self.state, self.agent_pos = self.sample_state()
+            self.obs, self.agent_pos = self.sample_state()
 
-        self.init_state = copy.deepcopy(self.state)
+        self.observation = {'observation': self.obs, 'desired_goal': self.desired_goal, 'achieved_goal': self.achieved_goal}
+        self.init_observation = copy.deepcopy(self.observation)
 
         self.ACTIONS = [coord(-1, 0, name='up'), coord(0, 1, name='right'), coord(1, 0, name='down'),
                         coord(0, -1, name='left'), 'pickup', 'drop']
+
         self.action_space = spaces.Discrete(len(self.ACTIONS))
 
         self.store_gif = store_gif
@@ -75,25 +105,41 @@ class CraftingWorldEnv(gym.Env):
         """
         reset the environment
         """
+
+        # save episode as gif
         if self.store_gif is True and self.step_num != 0:
             # print('debug_final', len(self.ims))
             anim = animation.ArtistAnimation(self.fig, self.ims, interval=100000, blit=False, repeat_delay=1000)
             anim.save('renders/env{}/episode_{}.gif'.format(self.env_id, self.ep_no), writer=animation.PillowWriter(), dpi=100)
 
-        if self.fixed_init_state:
-            self.state = self.fixed_init_state
-            self.agent_pos = coord(int(np.where(self.state == 9)[0]),int(np.where(self.state == 9)[1]), self.num_rows-1,
-                                   self.num_cols-1)
+        if self.fixed_goal:
+            self.desired_goal = np.zeros(shape=(1, len(self.task_list)), dtype=int)
+            for goal in self.fixed_goal:
+                self.desired_goal[0][self.task_list.index(goal)] = 1
         else:
-            self.state, self.agent_pos = self.sample_state()
+            self.desired_goal = np.random.randint(2, size=(1, len(self.task_list)))
 
-        self.init_state = copy.deepcopy(self.state)
+        self.achieved_goal = self.observation_space.spaces['achieved_goal'].low
+
+        if self.fixed_init_state:
+            self.obs = self.fixed_init_state
+            self.agent_pos = coord(int(np.where(np.argmax(self.obs, axis=2) == 8)[0]),
+                                   int(np.where(np.argmax(self.obs, axis=2) == 8)[1]), self.num_rows - 1,
+                                   self.num_cols - 1)
+        else:
+            self.obs, self.agent_pos = self.sample_state()
+
+        self.observation = {'observation': self.obs, 'desired_goal': self.desired_goal,
+                            'achieved_goal': self.achieved_goal}
+
+        self.init_observation = copy.deepcopy(self.observation)
 
         if self.step_num != 0:  # don't increment episode number if resetting after init
             self.ep_no += 1
 
         self.step_num = 0
 
+        # reset gif
         if self.store_gif:
             self.fig, self.ax = plt.subplots(1)
             self.ims = []
@@ -109,7 +155,7 @@ class CraftingWorldEnv(gym.Env):
         self.step_num += 1
 
         # pull information from agent's current location
-        current_cell = self.state[self.agent_pos.row, self.agent_pos.col]
+        current_cell = self.obs[self.agent_pos.row, self.agent_pos.col]
         object_at_current_pos, _, what_agent_is_holding = CraftingWorldEnv.translate_one_hot(current_cell)
 
         # Execute one time step within the environment
@@ -123,8 +169,8 @@ class CraftingWorldEnv(gym.Env):
                     pass  # print('can\'t pick up this object')
                 else:
                     # print('picked up', CraftingWorldEnv.translate_state_code(obj_code))
-                    self.state[self.agent_pos.row, self.agent_pos.col] = self.one_hot(agent=True,
-                                                                                      holding=object_at_current_pos)
+                    self.obs[self.agent_pos.row, self.agent_pos.col] = self.one_hot(agent=True,
+                                                                                    holding=object_at_current_pos)
 
         elif action_value == 'drop':
             if what_agent_is_holding is None:
@@ -134,8 +180,9 @@ class CraftingWorldEnv(gym.Env):
                     pass  # print('can only drop items on an empty spot')
                 else:
                     # print('dropped', CraftingWorldEnv.translate_state_code(holding_code+1))
-                    self.state[self.agent_pos.row, self.agent_pos.col] = self.one_hot(obj=what_agent_is_holding,
-                                                                                      agent=True)
+                    self.obs[self.agent_pos.row, self.agent_pos.col] = self.one_hot(obj=what_agent_is_holding,
+                                                                                    agent=True)
+
         else:
             self.__move_agent(action_value)
 
@@ -146,22 +193,24 @@ class CraftingWorldEnv(gym.Env):
             else:
                 self.__render_gif(action_value)
 
-        observation = self.state
-        reward = self.eval_tasks()
-        done = False if self.step_num < self.max_steps else True
+        task_success = self.eval_tasks()
+        self.achieved_goal = self.task_one_hot(task_success)
+        observation = self.observation
+        reward = self.calculate_rewards()
+        done = False if self.step_num < self.max_steps or reward == 0 else True
 
-        return observation, reward, done, {}
+        return observation, reward, done, {"task_success":  task_success, "desired_goal": self.desired_goal}
 
     def __move_agent(self, action):
         """
-        updates the encoding of two locations in self.state, the old position and the new position.
+        updates the encoding of two locations in self.obs, the old position and the new position.
 
         first the function adds the coordinates together to get the new location,
         then we pull the contents of each location, including what the agent is holding
 
         the function performs a series of checks for special cases, i.e. what to do if moving onto a tree location
 
-        then the function updates the encoding of the state
+        then the function updates the encoding of the obs
 
         :param action: one of the movement actions, stored as a coordinate object. coordinate class makes it easier to ensure agent doesn't move outside the grid
         """
@@ -171,10 +220,10 @@ class CraftingWorldEnv(gym.Env):
         if new_pos == self.agent_pos:  # agent is at an edge coordinate, so can't move in that direction
             return
 
-        new_pos_encoding = self.state[new_pos.row,new_pos.col]
+        new_pos_encoding = self.obs[new_pos.row, new_pos.col]
         object_at_new_pos, _, _ = CraftingWorldEnv.translate_one_hot(new_pos_encoding)
 
-        current_pos_encoding = self.state[self.agent_pos.row, self.agent_pos.col]
+        current_pos_encoding = self.obs[self.agent_pos.row, self.agent_pos.col]
         object_at_current_pos, _, what_agent_is_holding = CraftingWorldEnv.translate_one_hot(current_pos_encoding)
 
         if object_at_new_pos == 3:                                                                  # rock in new position
@@ -204,11 +253,11 @@ class CraftingWorldEnv(gym.Env):
             object_at_new_pos = None
 
         # update contents of new position
-        self.state[new_pos.row, new_pos.col] = self.one_hot(obj=object_at_new_pos,
-                                                            agent=True, holding=what_agent_is_holding)
+        self.obs[new_pos.row, new_pos.col] = self.one_hot(obj=object_at_new_pos,
+                                                          agent=True, holding=what_agent_is_holding)
 
         # update contents of old position
-        self.state[self.agent_pos.row, self.agent_pos.col] = self.one_hot(obj=object_at_current_pos,agent=False, holding=None)
+        self.obs[self.agent_pos.row, self.agent_pos.col] = self.one_hot(obj=object_at_current_pos, agent=False, holding=None)
 
         # update agent's location
         self.agent_pos = new_pos
@@ -217,12 +266,12 @@ class CraftingWorldEnv(gym.Env):
         """
 
         :param mode: 'Non' returns the rbg encoding for use in __render_gif(). 'human' also plots for user.
-        :param state: the state needed to render. if None, will render current state
+        :param state: the observation needed to render. if None, will render current observation
         :param tile_size: the number of pixels per cell, default 4
         :return: rgb image encoded as a numpy array
         """
         if state is None:
-            state = self.state
+            state = self.obs
 
         height, width = state.shape[0], state.shape[1]
         # Compute the total grid size
@@ -256,6 +305,7 @@ class CraftingWorldEnv(gym.Env):
                 xmin, xmax = i * tile_size, (i + 1) * tile_size
                 img[ymin:ymax, xmin:xmax, :] = tile_img
 
+        #  Display image
         if mode == 'human':
             fig2, ax2 = plt.subplots(1)
             ax2.imshow(img)
@@ -266,48 +316,55 @@ class CraftingWorldEnv(gym.Env):
     def __render_gif(self, action_label=None):
         img2 = self.render(mode='Non')
         im = plt.imshow(img2, animated=True)
-        if action_label is None:
-            title_str = ''
-        else:
-            title_str = action_label
 
-        ttl = plt.text(0.5, 1.01, title_str+' '+str(self.step_num), horizontalalignment='center',
+        desired_goals = "\n".join(wrap(', '.join([self.task_list[key] for key,value in enumerate(self.desired_goal[0]) if value==1]),50))
+        achieved_goals = "\n".join(wrap(', '.join([self.task_list[key] for key, value in enumerate(self.achieved_goal[0]) if value == 1]),50))
+        title_str = """
+Episode {}: step {} - action choice: {}
+Desired Goals: {}""".format(self.ep_no,self.step_num,action_label,desired_goals)
+
+        bottom_text = "Achieved Goals: {}".format(achieved_goals)
+        ttl = plt.text(0.00, 1.01, title_str, horizontalalignment='left',
                        verticalalignment='bottom', transform=self.ax.transAxes)
+        txt = plt.text(0.00, -0.02, bottom_text, horizontalalignment='left',
+                       verticalalignment='top', transform=self.ax.transAxes)
+        plt.xticks([])
+        plt.yticks([])
         patches = [mpatches.Patch(color=COLORS_rgba[i], label="{l}".format(l=OBJECTS[i])) for i in range(len(COLORS))]
+        '''patches.append(mpatches.Patch(color='white', label="Tasks:"))
+        tasks = [key for key,value in enumerate(self.desired_goal[0]) if value == 1]
+        patches += [mpatches.Patch(color=TASK_COLORS[self.achieved_goal[0][idx]],
+                                   label=self.task_list[idx]) for idx in tasks]'''
         # put those patched as legend-handles into the legend
-        plt.legend(handles=patches, bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
-        self.ims.append([im, ttl])
+        plt.legend(handles=patches, bbox_to_anchor=(1.025, 1), loc=2, borderaxespad=0.)
+
+        self.ims.append([im, ttl, txt])
 
     def sample_state(self):
         """
-        produces a sample state to start a new episode with
-        :return: a random state to start, along with position of agent
+        produces a observation with one of each object
+        :return obs: a sample observation
+        :return agent_position: position of the agent within the observation
         """
-        available_tiles = self.num_rows*self.num_cols
-        min_num_objects = 3 * max(available_tiles // 20, 1)
-        max_num_objects = min(9 * max(available_tiles // 20, 1), available_tiles-1)
-        num_objects = np.random.randint(min_num_objects,max_num_objects)
 
-        objects = [i+1 for i in np.random.choice(len(OBJECTS), num_objects, p=self.object_probabilities)]
-        objects.append(9)
+        objects = [_ for _ in range(1,10)]
         objects = [self.one_hot(i - 1) for i in objects]
-        grid = objects+[[0 for _ in range(self.observation_space.shape[2])]
-                        for _ in range(self.num_rows*self.num_cols-len(objects))]
-
+        grid = objects + [[0 for _ in range(self.observation_space.spaces['observation'].shape[2])]
+                          for _ in range(self.num_rows * self.num_cols - len(objects))]
         random.shuffle(grid)
 
-        state = np.asarray(grid, dtype=int).reshape(self.observation_space.shape)
+        state = np.asarray(grid, dtype=int).reshape(self.observation_space.spaces['observation'].shape)
 
         agent_position = coord(int(np.where(np.argmax(state, axis=2) == 8)[0]),
                                int(np.where(np.argmax(state, axis=2) == 8)[1]),
-                               self.num_rows-1, self.num_cols-1)
+                               self.num_rows - 1, self.num_cols - 1)
 
         return state, agent_position
 
     def eval_tasks(self):
         task_success = {}
-        init_objects = {obj: self.get_objects(code, self.init_state) for code,obj in enumerate(OBJECTS)}
-        final_objects = {obj: self.get_objects(code, self.state) for code,obj in enumerate(OBJECTS)}
+        init_objects = {obj: self.get_objects(code, self.init_observation['observation']) for code, obj in enumerate(OBJECTS)}
+        final_objects = {obj: self.get_objects(code, self.obs) for code, obj in enumerate(OBJECTS)}
 
         task_success['MakeBread'] = len(final_objects['wheat']) < len(init_objects['wheat'])
         task_success['EatBread'] = (len(final_objects['bread']) + len(final_objects['wheat'])) < (
@@ -322,12 +379,24 @@ class CraftingWorldEnv(gym.Env):
 
         return task_success
 
+    def task_one_hot(self,task_success):
+        goal_one_hot = np.zeros((1,len(self.task_list)),dtype=int)
+        for idx,task in enumerate(self.task_list):
+
+            goal_one_hot[0][idx] = 1 if task_success[task] is True else 0
+            # print(task_success[task])
+        return goal_one_hot
+
+    def calculate_rewards(self):
+        error = np.sum(np.square(self.achieved_goal - self.desired_goal))
+        return -error
+
     def get_objects(self, code, state):
         """
-        returns the locations for a particular type object within a state
+        returns the locations for a particular type object within a obs
 
         :param code: the code of the object, which is the index of the object within the one-hot encoding
-        :param state: the state to search in
+        :param state: the obs to search in
         :return: a list of locations where the object is $[[i_1,j_1],[i_2,j_2],...,[i_n,j_n]]$
         """
         code_variants = [code]
@@ -358,7 +427,7 @@ class CraftingWorldEnv(gym.Env):
             self.__render_gif()
 
     def one_hot(self, obj=None, agent=False, holding=None):
-        row = [0 for _ in range(self.observation_space.shape[2])]
+        row = [0 for _ in range(self.observation_space.spaces['observation'].shape[2])]
         if obj is not None:
             row[obj] = 1
         if agent:
@@ -373,6 +442,5 @@ class CraftingWorldEnv(gym.Env):
         holding = np.argmax(one_hot_row[len(OBJECTS)+1:]) if one_hot_row[len(OBJECTS)+1:].any() == 1 else None
         agent = one_hot_row[len(OBJECTS)]
         return object_at_location, agent, holding
-
 
 

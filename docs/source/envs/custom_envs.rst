@@ -8,12 +8,13 @@ in order to create a custom environment, you need to import gym and gym_crafting
     import gym_craftingworld
 
     from gym.envs.registration import register
-    register(id='craftingworld-MyCustomEnv',
+    register(id='craftingworldMyCustomEnv-v0',
              entry_point='gym_craftingworld.envs:CraftingWorldEnv',
-             kwargs={'size': (20,5), 'object_ratios': (1, 0, 0, 0, 0, 0, 1, 1)}
+             kwargs={'size': (20,5), 'fixed_goal': ['MakeBread','EatBread','BuildHouse','MoveAxe'],
+                 'tasks_to_ignore':['MoveAxe','MoveHammer','MoveSticks']}
              )
 
-    env = gym.make('craftingworld-MyCustomEnv')
+    env = gym.make('craftingworldMyCustomEnv-v0')
 
 
 then just use the environment as usual.

@@ -141,9 +141,12 @@ class CraftingWorldEnv(gym.GoalEnv):
 
         # reset gif
         if self.store_gif:
+            plt.close()
             self.fig, self.ax = plt.subplots(1)
             self.ims = []
             self.__render_gif()
+
+
 
     def step(self, action):
         """

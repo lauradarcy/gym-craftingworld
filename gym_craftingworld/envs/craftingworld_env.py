@@ -200,6 +200,8 @@ class CraftingWorldEnv(gym.GoalEnv):
 
         task_success = self.eval_tasks()
         self.achieved_goal = self.task_one_hot(task_success)
+        self.observation = {'observation': self.obs, 'desired_goal': self.desired_goal,
+                            'achieved_goal': self.achieved_goal}
         observation = self.observation
         reward = self.calculate_rewards()
         done = False if self.step_num < self.max_steps or reward == 0 else True
@@ -377,7 +379,7 @@ Desired Goals: {}""".format(self.ep_no,self.step_num,action_label,desired_goals)
         task_success['BuildHouse'] = len(final_objects['house']) > len(init_objects['house'])
         task_success['ChopTree'] = len(final_objects['tree']) < len(init_objects['tree'])
         task_success['ChopRock'] = len(final_objects['rock']) < len(init_objects['rock'])
-        task_success['GoToHouse'] = (self.agent_pos.row, self.agent_pos.col) in final_objects['house']
+        task_success['GoToHouse'] = list((self.agent_pos.row, self.agent_pos.col)) in final_objects['house']
         task_success['MoveAxe'] = final_objects['axe'] != init_objects['axe']
         task_success['MoveHammer'] = final_objects['hammer'] != init_objects['hammer']
         task_success['MoveSticks'] = False in [stick in init_objects['sticks'] for stick in final_objects['sticks']]

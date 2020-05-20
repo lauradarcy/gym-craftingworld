@@ -74,7 +74,6 @@ class CraftingWorldEnv(gym.GoalEnv):
         else:
             self.desired_goal = np.random.randint(2, size=(1, len(self.task_list)))
 
-
         self.achieved_goal = self.observation_space.spaces['achieved_goal'].low
 
         self.fixed_init_state = fixed_init_state

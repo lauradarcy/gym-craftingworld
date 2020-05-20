@@ -10,6 +10,8 @@ CraftingWorld: a multitask environment for gym
     :target: https://badge.fury.io/py/gym-craftingworld
 .. image:: https://img.shields.io/badge/License-BSD%202--Clause-orange.svg
     :target: https://github.com/lauradarcy/gym-craftingworld/blob/master/LICENSE
+.. image:: https://travis-ci.com/lauradarcy/gym-craftingworld.svg?branch=master
+    :target: https://travis-ci.com/lauradarcy/gym-craftingworld
 
 .. image:: assets/example.gif
   :scale: 100 %

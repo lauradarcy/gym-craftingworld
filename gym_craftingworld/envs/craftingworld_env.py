@@ -33,7 +33,7 @@ class CraftingWorldEnv(gym.GoalEnv):
     """Custom Crafting that follows gym interface"""
     metadata = {'render.modes': ['human', 'Non']}
 
-    def __init__(self, size=(10, 10), fixed_init_state=None, fixed_goal=None, tasks_to_ignore=None, store_gif=False, max_steps=300, task_list=TASK_LIST):
+    def __init__(self, size=(10, 10), fixed_init_state=None, fixed_goal=None, tasks_to_ignore=None, store_gif=False, render_flipping=False, max_steps=300, task_list=TASK_LIST):
         """
         initialise the environment, change the following args to create a custom environment
         :param size: size of the grid world
@@ -41,6 +41,7 @@ class CraftingWorldEnv(gym.GoalEnv):
         :param fixed_goal: a fixed list of tasks for the agent to achieve
         :param tasks_to_ignore: a list of tasks that won't affect the reward regardless of completion
         :param store_gif: whether or not to store every episode as a gif in a /renders/ subdirectory
+        :param render_flipping: set to true if only specific episodes need to be rendered
         :param max_steps: max number of steps the agent can take
         """
         self.metadata = {'render.modes': ['human', 'Non']}
@@ -94,22 +95,30 @@ class CraftingWorldEnv(gym.GoalEnv):
 
         self.action_space = spaces.Discrete(len(self.ACTIONS))
 
+        self.reward = self.calculate_rewards()
+
         self.store_gif = store_gif
+
+        self.render_flipping = render_flipping
         self.env_id = None
         self.fig, self.ax, self.ims = None, None, None
         self.ep_no = 0
         self.step_num = 0
+        if self.store_gif:
+            self.allow_gif_storage()
 
-    def reset(self):
+    def reset(self, render_next=False):
         """
         reset the environment
         """
-
         # save episode as gif
         if self.store_gif is True and self.step_num != 0:
             # print('debug_final', len(self.ims))
             anim = animation.ArtistAnimation(self.fig, self.ims, interval=100000, blit=False, repeat_delay=1000)
             anim.save('renders/env{}/episode_{}.gif'.format(self.env_id, self.ep_no), writer=animation.PillowWriter(), dpi=100)
+
+        if self.render_flipping is True:
+            self.store_gif = render_next
 
         if self.fixed_goal:
             self.desired_goal = np.zeros(shape=(1, len(self.task_list)), dtype=int)
@@ -132,6 +141,8 @@ class CraftingWorldEnv(gym.GoalEnv):
                             'achieved_goal': self.achieved_goal}
 
         self.init_observation = copy.deepcopy(self.observation)
+
+        self.reward = self.calculate_rewards()
 
         if self.step_num != 0:  # don't increment episode number if resetting after init
             self.ep_no += 1
@@ -202,7 +213,8 @@ class CraftingWorldEnv(gym.GoalEnv):
         self.observation = {'observation': self.obs, 'desired_goal': self.desired_goal,
                             'achieved_goal': self.achieved_goal}
         observation = self.observation
-        reward = self.calculate_rewards()
+        self.reward = self.calculate_rewards()
+        reward = self.reward
         done = False if self.step_num < self.max_steps or reward == 0 else True
 
         return observation, reward, done, {"task_success":  task_success, "desired_goal": self.desired_goal}
@@ -329,7 +341,7 @@ class CraftingWorldEnv(gym.GoalEnv):
 Episode {}: step {} - action choice: {}
 Desired Goals: {}""".format(self.ep_no,self.step_num,action_label,desired_goals)
 
-        bottom_text = "Achieved Goals: {}".format(achieved_goals)
+        bottom_text = "Achieved Goals: {}\nd_g: {}\na_g: {},   r: {}".format(achieved_goals,self.desired_goal,self.achieved_goal, self.reward)
         ttl = plt.text(0.00, 1.01, title_str, horizontalalignment='left',
                        verticalalignment='bottom', transform=self.ax.transAxes)
         txt = plt.text(0.00, -0.02, bottom_text, horizontalalignment='left',
@@ -368,6 +380,7 @@ Desired Goals: {}""".format(self.ep_no,self.step_num,action_label,desired_goals)
         return state, agent_position
 
     def eval_tasks(self):
+        # TODO: eval_tasks is not efficient (dictcomps are slow) - try to speed this up
         task_success = {}
         init_objects = {obj: self.get_objects(code, self.init_observation['observation']) for code, obj in enumerate(OBJECTS)}
         final_objects = {obj: self.get_objects(code, self.obs) for code, obj in enumerate(OBJECTS)}

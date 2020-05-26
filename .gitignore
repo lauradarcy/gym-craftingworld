@@ -11,6 +11,7 @@ __pycache__/
 *.idea
 
 #misc
+workflow.md
 playground.py
 multitask_crafting_comments.py
 craftingworld_env2.py

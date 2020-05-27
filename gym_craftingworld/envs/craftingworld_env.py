@@ -30,7 +30,17 @@ TASK_LIST = ['MakeBread','EatBread','BuildHouse','ChopTree','ChopRock','GoToHous
 
 
 class CraftingWorldEnv(gym.GoalEnv):
-    """Custom Crafting that follows gym interface"""
+    """Custom Crafting that follows gym interface
+    
+    :param size: size of the grid world
+    :param fixed_init_state: a fixed initial observation to reset to
+    :param fixed_goal: a fixed list of tasks for the agent to achieve
+    :param tasks_to_ignore: a list of tasks to ignore when calculating reward
+    :param store_gif: whether or not to store every episode as a gif in a /renders/ subdirectory
+    :param render_flipping: set to true if only specific episodes need to be rendered
+    :param max_steps: max number of steps the agent can take
+    :param task_list: list of possible tasks
+    """
     metadata = {'render.modes': ['human', 'Non']}
 
     def __init__(self, size=(10, 10), fixed_init_state=None, fixed_goal=None, tasks_to_ignore=None, store_gif=False, render_flipping=False, max_steps=300, task_list=TASK_LIST):
@@ -235,7 +245,6 @@ class CraftingWorldEnv(gym.GoalEnv):
 
         :param action: one of the movement actions, stored as a coordinate object. coordinate class makes it easier to ensure agent doesn't move outside the grid
         """
-
         new_pos = self.agent_pos + action
 
         if new_pos == self.agent_pos:  # agent is at an edge coordinate, so can't move in that direction
@@ -367,7 +376,6 @@ Desired Goals: {}""".format(self.ep_no,self.step_num,action_label,desired_goals)
         :return obs: a sample observation
         :return agent_position: position of the agent within the observation
         """
-
         objects = [_ for _ in range(1,10)]
         objects = [self.one_hot(i - 1) for i in objects]
         grid = objects + [[0 for _ in range(self.observation_space.spaces['observation'].shape[2])]

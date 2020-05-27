@@ -36,6 +36,7 @@ class CraftingWorldEnv(gym.GoalEnv):
     def __init__(self, size=(10, 10), fixed_init_state=None, fixed_goal=None, tasks_to_ignore=None, store_gif=False, render_flipping=False, max_steps=300, task_list=TASK_LIST):
         """
         change the following parameters to create a custom environment
+
         :param size: size of the grid world
         :param fixed_init_state: a fixed initial observation to reset to
         :param fixed_goal: a fixed list of tasks for the agent to achieve
@@ -44,7 +45,6 @@ class CraftingWorldEnv(gym.GoalEnv):
         :param render_flipping: set to true if only specific episodes need to be rendered
         :param max_steps: max number of steps the agent can take
         :param task_list: list of possible tasks
-
         """
         self.metadata = {'render.modes': ['human', 'Non']}
 
@@ -165,6 +165,7 @@ class CraftingWorldEnv(gym.GoalEnv):
     def step(self, action):
         """
         take a step within the environment
+
         :param action: integer value within the action_space range
         :return: observations, reward, done, debugging info
         """

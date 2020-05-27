@@ -30,16 +30,7 @@ TASK_LIST = ['MakeBread','EatBread','BuildHouse','ChopTree','ChopRock','GoToHous
 
 
 class CraftingWorldEnv(gym.GoalEnv):
-    """Custom Crafting that follows gym interface
-    
-    :param size: size of the grid world
-    :param fixed_init_state: a fixed initial observation to reset to
-    :param fixed_goal: a fixed list of tasks for the agent to achieve
-    :param tasks_to_ignore: a list of tasks to ignore when calculating reward
-    :param store_gif: whether or not to store every episode as a gif in a /renders/ subdirectory
-    :param render_flipping: set to true if only specific episodes need to be rendered
-    :param max_steps: max number of steps the agent can take
-    :param task_list: list of possible tasks
+    """Custom Crafting environment that follows the gym interface pattern
     """
     metadata = {'render.modes': ['human', 'Non']}
 

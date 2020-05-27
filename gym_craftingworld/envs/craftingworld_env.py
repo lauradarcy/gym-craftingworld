@@ -44,6 +44,7 @@ class CraftingWorldEnv(gym.GoalEnv):
         :param render_flipping: set to true if only specific episodes need to be rendered
         :param max_steps: max number of steps the agent can take
         :param task_list: list of possible tasks
+
         """
         self.metadata = {'render.modes': ['human', 'Non']}
 

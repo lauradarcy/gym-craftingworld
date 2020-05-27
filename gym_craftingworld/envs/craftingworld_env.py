@@ -35,14 +35,15 @@ class CraftingWorldEnv(gym.GoalEnv):
 
     def __init__(self, size=(10, 10), fixed_init_state=None, fixed_goal=None, tasks_to_ignore=None, store_gif=False, render_flipping=False, max_steps=300, task_list=TASK_LIST):
         """
-        initialise the environment, change the following args to create a custom environment
+        change the following parameters to create a custom environment
         :param size: size of the grid world
-        :param fixed_init_state: an initial observation to reset to if desired
+        :param fixed_init_state: a fixed initial observation to reset to
         :param fixed_goal: a fixed list of tasks for the agent to achieve
-        :param tasks_to_ignore: a list of tasks that won't affect the reward regardless of completion
+        :param tasks_to_ignore: a list of tasks to ignore when calculating reward
         :param store_gif: whether or not to store every episode as a gif in a /renders/ subdirectory
         :param render_flipping: set to true if only specific episodes need to be rendered
         :param max_steps: max number of steps the agent can take
+        :param task_list: list of possible tasks
         """
         self.metadata = {'render.modes': ['human', 'Non']}
 
@@ -115,7 +116,7 @@ class CraftingWorldEnv(gym.GoalEnv):
         if self.store_gif is True and self.step_num != 0:
             # print('debug_final', len(self.ims))
             anim = animation.ArtistAnimation(self.fig, self.ims, interval=100000, blit=False, repeat_delay=1000)
-            anim.save('renders/env{}/episode_{}.gif'.format(self.env_id, self.ep_no), writer=animation.PillowWriter(), dpi=100)
+            anim.save('renders/env{}/episode_{}_({}).gif'.format(self.env_id, self.ep_no, self.step_num), writer=animation.PillowWriter(), dpi=100)
 
         if self.render_flipping is True:
             self.store_gif = render_next

@@ -34,7 +34,7 @@ class CraftingWorldEnv(gym.GoalEnv):
     """
     metadata = {'render.modes': ['human', 'Non']}
 
-    def __init__(self, size=(10, 10), fixed_init_state=None, fixed_goal=None, tasks_to_ignore=None, store_gif=False, render_flipping=False, max_steps=300, task_list=TASK_LIST):
+    def __init__(self, size=(10, 10), fixed_init_state=None, fixed_goal=None, tasks_to_ignore=None, store_gif=False, render_flipping=False, max_steps=300, task_list=TASK_LIST, pos_rewards = False):
         """
         change the following parameters to create a custom environment
 
@@ -57,6 +57,7 @@ class CraftingWorldEnv(gym.GoalEnv):
         if tasks_to_ignore:
             for task in tasks_to_ignore:
                 self.task_list.remove(task)
+        self.pos_rewards = pos_rewards
 
         self.observation_space = spaces.Dict({'observation':spaces.Box(low=0, high=1,
                                             shape=(self.num_rows, self.num_cols, len(OBJECTS)+1+len(PICKUPABLE)),
@@ -212,7 +213,8 @@ class CraftingWorldEnv(gym.GoalEnv):
         observation = self.observation
         self.reward = self.calculate_rewards()
         reward = self.reward
-        done = False if self.step_num < self.max_steps or reward == 0 else True
+        reward_lim = 0 if self.pos_rewards is False else np.sum(self.desired_goal)
+        done = False if self.step_num < self.max_steps or reward == reward_lim else True
 
         # render if required
         if self.store_gif is True:
@@ -410,6 +412,8 @@ Desired Goals: {}""".format(self.ep_no,self.step_num,action_label,desired_goals)
 
     def calculate_rewards(self):
         error = np.sum(np.square(self.achieved_goal - self.desired_goal))
+        if self.pos_rewards is True:
+            return np.sum(self.desired_goal)-error
         return -error
 
     def get_objects(self, code, state):

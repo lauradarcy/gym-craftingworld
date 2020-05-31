@@ -205,13 +205,6 @@ class CraftingWorldEnv(gym.GoalEnv):
         else:
             self.__move_agent(action_value)
 
-        # render if required
-        if self.store_gif is True:
-            if type(action_value) == coord:
-                self.__render_gif(action_value.name)
-            else:
-                self.__render_gif(action_value)
-
         task_success = self.eval_tasks()
         self.achieved_goal = self.task_one_hot(task_success)
         self.observation = {'observation': self.obs, 'desired_goal': self.desired_goal,
@@ -220,6 +213,13 @@ class CraftingWorldEnv(gym.GoalEnv):
         self.reward = self.calculate_rewards()
         reward = self.reward
         done = False if self.step_num < self.max_steps or reward == 0 else True
+
+        # render if required
+        if self.store_gif is True:
+            if type(action_value) == coord:
+                self.__render_gif(action_value.name)
+            else:
+                self.__render_gif(action_value)
 
         return observation, reward, done, {"task_success":  task_success, "desired_goal": self.desired_goal}
 

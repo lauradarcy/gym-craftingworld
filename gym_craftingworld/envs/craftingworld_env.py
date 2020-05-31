@@ -83,7 +83,7 @@ class CraftingWorldEnv(gym.GoalEnv):
         self.fixed_init_state = fixed_init_state
 
         if self.fixed_init_state is not None:
-            self.obs = self.fixed_init_state
+            self.obs = copy.deepcopy(self.fixed_init_state)
             self.agent_pos = coord(int(np.where(np.argmax(self.obs, axis=2) == 8)[0]),
                                    int(np.where(np.argmax(self.obs, axis=2) == 8)[1]), self.num_rows - 1,
                                    self.num_cols - 1)
@@ -133,7 +133,7 @@ class CraftingWorldEnv(gym.GoalEnv):
         self.achieved_goal = self.observation_space.spaces['achieved_goal'].low
 
         if self.fixed_init_state is not None:
-            self.obs = self.fixed_init_state
+            self.obs = copy.deepcopy(self.fixed_init_state)
             self.agent_pos = coord(int(np.where(np.argmax(self.obs, axis=2) == 8)[0]),
                                    int(np.where(np.argmax(self.obs, axis=2) == 8)[1]), self.num_rows - 1,
                                    self.num_cols - 1)

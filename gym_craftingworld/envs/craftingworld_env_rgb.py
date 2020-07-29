@@ -539,7 +539,7 @@ Desired Goals: {}""".format(self.ep_no, self.step_num, action_label, desired_goa
         return goal_one_hot
 
     def calculate_rewards(self):
-        error = np.sum(np.square(self.observation['desired_goal'] - self.observation['achieved_goal']))
+        error = np.sqrt(np.sum(np.square(self.observation['desired_goal'] - self.observation['achieved_goal'])))
         if self.pos_rewards is True:
             return np.sum(self.desired_goal_vector) - error
         return -error

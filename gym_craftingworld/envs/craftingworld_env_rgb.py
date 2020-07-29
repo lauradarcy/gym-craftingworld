@@ -67,14 +67,14 @@ class CraftingWorldEnvRGB(gym.GoalEnv):
                 self.task_list.remove(task)
         self.pos_rewards = pos_rewards
 
-        self.observation_space = spaces.Dict(dict(observation=spaces.Box(low=0, high=255, shape=(self.num_rows,
-                                                                                                 self.num_cols, 3),
+        self.observation_space = spaces.Dict(dict(observation=spaces.Box(low=0, high=255, shape=(self.num_rows*4,
+                                                                                                 self.num_cols*4, 3),
                                                                          dtype=int),
-                                                  desired_goal=spaces.Box(low=0, high=255, shape=(self.num_rows,
-                                                                                                  self.num_cols, 3),
+                                                  desired_goal=spaces.Box(low=0, high=255, shape=(self.num_rows*4,
+                                                                                                  self.num_cols*4, 3),
                                                                           dtype=int),
-                                                  achieved_goal=spaces.Box(low=0, high=255, shape=(self.num_rows,
-                                                                                                   self.num_cols, 3),
+                                                  achieved_goal=spaces.Box(low=0, high=255, shape=(self.num_rows*4,
+                                                                                                   self.num_cols*4, 3),
                                                                            dtype=int)))
 
         self.observation_vector_space = spaces.Dict(dict(observation=spaces.Box(low=0, high=1,
@@ -179,15 +179,10 @@ class CraftingWorldEnvRGB(gym.GoalEnv):
 
         self.init_observation_vector = copy.deepcopy(self.observation_vector)
 
-        self.render(mode = 'human')
         self.desired_goal = self.imagine_obs()
         self.observation = {'observation': self.render(self.obs_one_hot), 'desired_goal': self.desired_goal,
                             'achieved_goal': self.render(self.obs_one_hot)}
         self.init_observation = copy.deepcopy(self.observation)
-
-        fig2, ax2 = plt.subplots(1)
-        ax2.imshow(self.desired_goal)
-        fig2.show()
 
         self.reward = self.calculate_rewards()
 

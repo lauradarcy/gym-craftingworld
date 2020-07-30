@@ -75,7 +75,11 @@ class CraftingWorldEnvRGB(gym.GoalEnv):
                                                                           dtype=int),
                                                   achieved_goal=spaces.Box(low=0, high=255, shape=(self.num_rows*4,
                                                                                                    self.num_cols*4, 3),
-                                                                           dtype=int)))
+                                                                           dtype=int),
+                                                  init_observation=spaces.Box(low=0, high=255, shape=(self.num_rows * 4,
+                                                                                                 self.num_cols * 4, 3),
+                                                                         dtype=int)
+                                                  ))
 
         self.observation_vector_space = spaces.Dict(dict(observation=spaces.Box(low=0, high=1,
                                                                                 shape=(self.num_rows, self.num_cols,
@@ -87,7 +91,13 @@ class CraftingWorldEnvRGB(gym.GoalEnv):
                                                                                  dtype=int),
                                                          achieved_goal=spaces.Box(low=0, high=1,
                                                                                   shape=(1, len(self.task_list)),
-                                                                                  dtype=int)))
+                                                                                  dtype=int),
+                                                         init_observation=spaces.Box(low=0, high=1,
+                                                                                shape=(self.num_rows, self.num_cols,
+                                                                                       len(OBJECTS) + 1 + len(
+                                                                                           PICKUPABLE)),
+                                                                                dtype=int)
+                                                         ))
 
         # TODO: wrapper that flattens to regular env, wrapper that changes desired goal to dict of rewards, reward wrapper
 
@@ -117,13 +127,15 @@ class CraftingWorldEnvRGB(gym.GoalEnv):
         # self.observation = {'observation': self.obs_one_hot, 'desired_goal': self.desired_goal_vector,
         #                     'achieved_goal': self.achieved_goal_vector}
         self.observation_vector = {'observation': self.obs_one_hot, 'desired_goal': self.desired_goal_vector,
-                                   'achieved_goal': self.achieved_goal_vector}
+                                   'achieved_goal': self.achieved_goal_vector,
+                                   'init_observation': copy.deepcopy(self.obs_one_hot)}
         # self.init_obs_one_hot = copy.deepcopy(self.obs_one_hot)
         self.init_observation_vector = copy.deepcopy(self.observation_vector)
 
         self.desired_goal = self.imagine_obs()
         self.observation = {'observation': self.render(self.obs_one_hot), 'desired_goal': self.desired_goal,
-                            'achieved_goal': self.render(self.obs_one_hot)}
+                            'achieved_goal': self.render(self.obs_one_hot),
+                            'init_observation': self.render(self.obs_one_hot)}
         self.init_observation = copy.deepcopy(self.observation)
 
         self.ACTIONS = [coord(-1, 0, name='up'), coord(0, 1, name='right'), coord(1, 0, name='down'),
@@ -175,13 +187,15 @@ class CraftingWorldEnvRGB(gym.GoalEnv):
             self.obs_one_hot, self.agent_pos = self.sample_state()
 
         self.observation_vector = {'observation': self.obs_one_hot, 'desired_goal': self.desired_goal_vector,
-                                   'achieved_goal': self.achieved_goal_vector}
+                                   'achieved_goal': self.achieved_goal_vector,
+                                   'init_observation': copy.deepcopy(self.obs_one_hot)}
 
         self.init_observation_vector = copy.deepcopy(self.observation_vector)
 
         self.desired_goal = self.imagine_obs()
         self.observation = {'observation': self.render(self.obs_one_hot), 'desired_goal': self.desired_goal,
-                            'achieved_goal': self.render(self.obs_one_hot)}
+                            'achieved_goal': self.render(self.obs_one_hot),
+                            'init_observation': self.render(self.obs_one_hot)}
         self.init_observation = copy.deepcopy(self.observation)
 
         self.reward = self.calculate_rewards()
@@ -328,9 +342,9 @@ class CraftingWorldEnvRGB(gym.GoalEnv):
         task_success = self.eval_tasks()
         self.achieved_goal_vector = self.task_one_hot(task_success)
         self.observation_vector = {'observation': self.obs_one_hot, 'desired_goal': self.desired_goal_vector,
-                                   'achieved_goal': self.achieved_goal_vector}
+                                   'achieved_goal': self.achieved_goal_vector, 'init_observation': self.init_observation_vector}
         self.observation = {'observation': self.render(self.obs_one_hot), 'desired_goal': self.desired_goal,
-                            'achieved_goal': self.render(self.obs_one_hot)}
+                            'achieved_goal': self.render(self.obs_one_hot), 'init_observation': self.init_observation}
         observation = self.observation
         self.reward = self.calculate_rewards()
         reward = self.reward

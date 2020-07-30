@@ -1,6 +1,9 @@
 import gym
 from gym import spaces
 import copy
+
+from numpy.core._multiarray_umath import ndarray
+
 from gym_craftingworld.envs.rendering import *
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
@@ -39,6 +42,7 @@ TASK_LIST = ['MakeBread', 'EatBread', 'BuildHouse', 'ChopTree', 'ChopRock', 'GoT
 class CraftingWorldEnvRGB(gym.GoalEnv):
     """Custom Crafting environment that follows the gym interface pattern
     """
+
     metadata = {'render.modes': ['human', 'Non']}
 
     def __init__(self, size=(10, 10), fixed_init_state=None, fixed_goal=None, tasks_to_ignore=None, store_gif=False,
@@ -126,16 +130,18 @@ class CraftingWorldEnvRGB(gym.GoalEnv):
 
         # self.observation = {'observation': self.obs_one_hot, 'desired_goal': self.desired_goal_vector,
         #                     'achieved_goal': self.achieved_goal_vector}
+        self.INIT_OBS_VECTOR = copy.deepcopy(self.obs_one_hot)
+        self.INIT_OBS = self.render(self.INIT_OBS_VECTOR)
         self.observation_vector = {'observation': self.obs_one_hot, 'desired_goal': self.desired_goal_vector,
                                    'achieved_goal': self.achieved_goal_vector,
-                                   'init_observation': copy.deepcopy(self.obs_one_hot)}
+                                   'init_observation': self.INIT_OBS_VECTOR}
         # self.init_obs_one_hot = copy.deepcopy(self.obs_one_hot)
         self.init_observation_vector = copy.deepcopy(self.observation_vector)
 
         self.desired_goal = self.imagine_obs()
         self.observation = {'observation': self.render(self.obs_one_hot), 'desired_goal': self.desired_goal,
                             'achieved_goal': self.render(self.obs_one_hot),
-                            'init_observation': self.render(self.obs_one_hot)}
+                            'init_observation': self.INIT_OBS}
         self.init_observation = copy.deepcopy(self.observation)
 
         self.ACTIONS = [coord(-1, 0, name='up'), coord(0, 1, name='right'), coord(1, 0, name='down'),
@@ -186,16 +192,18 @@ class CraftingWorldEnvRGB(gym.GoalEnv):
         else:
             self.obs_one_hot, self.agent_pos = self.sample_state()
 
+        self.INIT_OBS_VECTOR = copy.deepcopy(self.obs_one_hot)
+        self.INIT_OBS = self.render(self.INIT_OBS_VECTOR)
         self.observation_vector = {'observation': self.obs_one_hot, 'desired_goal': self.desired_goal_vector,
                                    'achieved_goal': self.achieved_goal_vector,
-                                   'init_observation': copy.deepcopy(self.obs_one_hot)}
+                                   'init_observation': self.INIT_OBS_VECTOR}
 
         self.init_observation_vector = copy.deepcopy(self.observation_vector)
 
         self.desired_goal = self.imagine_obs()
         self.observation = {'observation': self.render(self.obs_one_hot), 'desired_goal': self.desired_goal,
                             'achieved_goal': self.render(self.obs_one_hot),
-                            'init_observation': self.render(self.obs_one_hot)}
+                            'init_observation': self.INIT_OBS}
         self.init_observation = copy.deepcopy(self.observation)
 
         self.reward = self.calculate_rewards()
@@ -342,9 +350,9 @@ class CraftingWorldEnvRGB(gym.GoalEnv):
         task_success = self.eval_tasks()
         self.achieved_goal_vector = self.task_one_hot(task_success)
         self.observation_vector = {'observation': self.obs_one_hot, 'desired_goal': self.desired_goal_vector,
-                                   'achieved_goal': self.achieved_goal_vector, 'init_observation': self.init_observation_vector}
+                                   'achieved_goal': self.achieved_goal_vector, 'init_observation': self.INIT_OBS_VECTOR}
         self.observation = {'observation': self.render(self.obs_one_hot), 'desired_goal': self.desired_goal,
-                            'achieved_goal': self.render(self.obs_one_hot), 'init_observation': self.init_observation}
+                            'achieved_goal': self.render(self.obs_one_hot), 'init_observation': self.INIT_OBS}
         observation = self.observation
         self.reward = self.calculate_rewards()
         reward = self.reward

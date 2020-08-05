@@ -560,10 +560,16 @@ Desired Goals: {}""".format(self.ep_no, self.step_num, action_label, desired_goa
             # print(task_success[task])
         return goal_one_hot
 
-    def calculate_rewards(self):
-        error = np.sqrt(np.sum(np.square(self.observation['desired_goal'] - self.observation['achieved_goal'])))
+    def calculate_rewards(self, desired_goal=None, achieved_goal=None, initial_goal=None):
+        if desired_goal is None:
+            desired_goal = self.observation['desired_goal']
+        if achieved_goal is None:
+            achieved_goal = self.observation['achieved_goal']
+        if initial_goal is None:
+            initial_goal = self.init_observation['achieved_goal']
+        error = np.sqrt(np.sum(np.square(desired_goal - achieved_goal)))
         if self.pos_rewards is True:
-            initial_error = np.sqrt(np.sum(np.square(self.observation['desired_goal'] - self.init_observation['achieved_goal'])))
+            initial_error = np.sqrt(np.sum(np.square(desired_goal - initial_goal)))
             return -error/initial_error
         return -error
 
@@ -619,10 +625,3 @@ Desired Goals: {}""".format(self.ep_no, self.step_num, action_label, desired_goa
         agent = one_hot_row[len(OBJECTS)]
         return object_at_location, agent, holding
 
-    @staticmethod
-    def calculate_rewards_from_state(desired_goal, achieved_goal, pos_rewards=True):
-        error = np.sqrt(np.sum(np.square(desired_goal - achieved_goal)))
-        if pos_rewards is True:
-            initial_error = np.sqrt(np.sum(np.square(desired_goal - achieved_goal)))
-            return -error/initial_error
-        return -error

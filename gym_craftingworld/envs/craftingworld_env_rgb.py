@@ -618,3 +618,11 @@ Desired Goals: {}""".format(self.ep_no, self.step_num, action_label, desired_goa
         holding = np.argmax(one_hot_row[len(OBJECTS) + 1:]) if one_hot_row[len(OBJECTS) + 1:].any() == 1 else None
         agent = one_hot_row[len(OBJECTS)]
         return object_at_location, agent, holding
+
+    @staticmethod
+    def calculate_rewards_from_state(desired_goal, achieved_goal, pos_rewards=True):
+        error = np.sqrt(np.sum(np.square(desired_goal - achieved_goal)))
+        if pos_rewards is True:
+            initial_error = np.sqrt(np.sum(np.square(desired_goal - achieved_goal)))
+            return -error/initial_error
+        return -error

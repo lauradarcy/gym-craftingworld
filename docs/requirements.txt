@@ -1,4 +1,4 @@
 gym
 numpy
 pillow
-gym-craftingworld==0.1.7.4
+gym-craftingworld==0.1.7.5

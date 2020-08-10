@@ -62,6 +62,7 @@ class CraftingWorldEnvRGB(gym.GoalEnv):
         self.metadata = {'render.modes': ['human', 'Non']}
 
         self.num_rows, self.num_cols = size
+        self.agent_start = (int(self.num_rows/2), int(self.num_cols/2))
 
         self.max_steps = max_steps
 
@@ -513,7 +514,7 @@ Desired Goals: {}""".format(self.ep_no, self.step_num, action_label, desired_goa
 
         self.ims.append([im, ttl, txt])
 
-    def sample_state(self):
+    def sample_state_not_fixed_agent(self):
         """
         produces a observation with one of each object
         :return obs: a sample observation
@@ -529,6 +530,29 @@ Desired Goals: {}""".format(self.ep_no, self.step_num, action_label, desired_goa
 
         agent_position = coord(int(np.where(np.argmax(state, axis=2) == 8)[0]),
                                int(np.where(np.argmax(state, axis=2) == 8)[1]),
+                               self.num_rows - 1, self.num_cols - 1)
+
+        return state, agent_position
+
+    def sample_state(self):
+        """
+        produces a observation with one of each object
+        :return obs: a sample observation
+        :return agent_position: position of the agent within the observation
+        """
+        objects = [self.one_hot(i - 1) for i in range(1,9)]
+        grid = objects + [[0 for _ in range(self.observation_vector_space.spaces['observation'].shape[2])]
+                          for _ in range(self.num_rows * self.num_cols - len(objects))]
+        random.shuffle(grid)
+
+        state = np.asarray(grid, dtype=int).reshape(self.observation_vector_space.spaces['observation'].shape)
+        while np.argmax(state[self.agent_start[0]][self.agent_start[1]]) in [3, 4, 5, 6]:
+            # don't start agent on rock, tree, house or bread
+            np.random.shuffle(state)
+        agent_encoding = self.one_hot(8)
+        state[self.agent_start[0]][self.agent_start[1]] += agent_encoding
+        agent_position = coord(self.agent_start[0],
+                               self.agent_start[1],
                                self.num_rows - 1, self.num_cols - 1)
 
         return state, agent_position

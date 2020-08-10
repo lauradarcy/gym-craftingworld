@@ -1,4 +1,4 @@
 gym
 numpy
 matplotlib
-pillow
+pillow>=7.1.0

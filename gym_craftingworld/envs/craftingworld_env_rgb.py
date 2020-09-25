@@ -46,7 +46,7 @@ class CraftingWorldEnvRGB(gym.GoalEnv):
     metadata = {'render.modes': ['human', 'Non']}
 
     def __init__(self, size=(10, 10), fixed_init_state=None, fixed_goal=None, tasks_to_ignore=None, store_gif=False,
-                 render_flipping=False, max_steps=300, task_list=TASK_LIST, pos_rewards=False):
+                 render_flipping=False, max_steps=300, task_list=TASK_LIST, pos_rewards=False, binary_rewards=False):
         """
         change the following parameters to create a custom environment
 
@@ -71,6 +71,7 @@ class CraftingWorldEnvRGB(gym.GoalEnv):
             for task in tasks_to_ignore:
                 self.task_list.remove(task)
         self.pos_rewards = pos_rewards
+        self.binary_rewards = binary_rewards
 
         self.observation_space = spaces.Dict(dict(observation=spaces.Box(low=0, high=255, shape=(self.num_rows*4,
                                                                                                  self.num_cols*4, 3),
@@ -585,6 +586,15 @@ Desired Goals: {}""".format(self.ep_no, self.step_num, action_label, desired_goa
         return goal_one_hot
 
     def calculate_rewards(self, desired_goal=None, achieved_goal=None, initial_goal=None):
+        if self.binary_rewards is True:
+            if desired_goal is None:
+                desired_goal = self.observation_vector['desired_goal']
+            if achieved_goal is None:
+                achieved_goal = self.observation_vector['achieved_goal']
+            if np.sum(np.square(desired_goal - achieved_goal)) == 0:
+                return 1
+            else:
+                return -1
         if desired_goal is None:
             desired_goal = self.observation['desired_goal']
         if achieved_goal is None:

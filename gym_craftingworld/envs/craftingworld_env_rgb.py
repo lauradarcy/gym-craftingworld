@@ -46,10 +46,13 @@ class CraftingWorldEnvRGB(gym.GoalEnv):
     metadata = {'render.modes': ['human', 'Non']}
 
     def __init__(self, size=(10, 10), fixed_init_state=None, fixed_goal=None, tasks_to_ignore=None, store_gif=False,
-                 render_flipping=False, max_steps=300, task_list=TASK_LIST, pos_rewards=False, binary_rewards=False):
+                 render_flipping=False, max_steps=300, task_list=TASK_LIST, pos_rewards=False, binary_rewards=False,
+                 selected_tasks=None, stacking=True):
         """
         change the following parameters to create a custom environment
 
+        :param selected_tasks: list of tasks for the desired goal
+        :param stacking: bool whether multiple tasks can be selected for desired goal
         :param size: size of the grid world
         :param fixed_init_state: a fixed initial observation to reset to
         :param fixed_goal: a fixed list of tasks for the agent to achieve
@@ -67,11 +70,15 @@ class CraftingWorldEnvRGB(gym.GoalEnv):
         self.max_steps = max_steps
 
         self.task_list = task_list
+
         if tasks_to_ignore:
             for task in tasks_to_ignore:
                 self.task_list.remove(task)
         self.pos_rewards = pos_rewards
         self.binary_rewards = binary_rewards
+
+        self.selected_tasks = selected_tasks
+        self.stacking = stacking
 
         self.observation_space = spaces.Dict(dict(observation=spaces.Box(low=0, high=255, shape=(self.num_rows*4,
                                                                                                  self.num_cols*4, 3),
@@ -181,6 +188,12 @@ class CraftingWorldEnvRGB(gym.GoalEnv):
             self.desired_goal_vector = np.zeros(shape=(1, len(self.task_list)), dtype=int)
             for goal in self.fixed_goal:
                 self.desired_goal_vector[0][self.task_list.index(goal)] = 1
+        elif self.selected_tasks is not None:
+            self.desired_goal_vector = np.zeros(shape=(1, len(self.task_list)), dtype=int)
+            number_of_tasks = np.random.randint(len(self.selected_tasks)) + 1 if self.stacking is True else 1
+            tasks = random.sample(self.selected_tasks, k=number_of_tasks)
+            for task in tasks:
+                self.desired_goal_vector[0][self.task_list.index(task)] = 1
         else:
             self.desired_goal_vector = np.random.randint(2, size=(1, len(self.task_list)))
 

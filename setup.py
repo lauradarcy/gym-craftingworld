@@ -5,13 +5,13 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setup(name='gym_craftingworld',
-      version='0.1.7.9',
+      version='0.1.7.11',
       author="Laura D\'Arcy",
       author_email="DArcyL@cardiff.ac.uk",
       description="A gym package for the 2d crafting multitask world",
       long_description=long_description,
       long_description_content_type='text/markdown',
-      url="https://https://github.com/lauradarcy/gym-craftingworld",
+      url="https://github.com/lauradarcy/gym-craftingworld",
       packages=setuptools.find_packages(),
       classifiers=[
           "Programming Language :: Python :: 3",

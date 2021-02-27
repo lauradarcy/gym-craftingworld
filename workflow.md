@@ -1,7 +1,7 @@
 ## things to update for new version:
 * **please ensure all print statements are removed from the package before uploading**
-* setup.py
-* docs/requirements.txt
+* update version number in setup.py
+* update version number in docs/requirements.txt
 
 ## workflow to update github and pypi package:
 * commit to github

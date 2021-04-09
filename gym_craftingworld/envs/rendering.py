@@ -1,22 +1,25 @@
-import math
+# import math
 import numpy as np
 
-# COLORS = [(0,0,0),(100,100,100),(100,100,200), (0,128,0),(255,105,180), (205,133,63), (153,101,21), (70,49,29), (240,230,140),(240,255,240)]
-
+# COLORS = [(0, 0, 0), (100, 100, 100), (100, 100, 200), (0, 128, 0),
+#           (255, 105, 180), (205, 133, 63), (153, 101, 21), (70, 49, 29),
+#           (240, 230, 140), (240, 255, 240)]
 
 # def downsample(img, factor):
 #     """
 #     Downsample an image along both dimensions by some factor
 #     """
-#
+
 #     assert img.shape[0] % factor == 0
 #     assert img.shape[1] % factor == 0
-#
-#     img = img.reshape([img.shape[0]//factor, factor, img.shape[1]//factor, factor, 3])
+
+#     img = img.reshape(
+#         [img.shape[0] // factor, factor, img.shape[1] // factor, factor, 3])
 #     img = img.mean(axis=3)
 #     img = img.mean(axis=1)
-#
+
 #     return img
+
 
 def fill_coords(img, fn, color):
     """
@@ -32,12 +35,14 @@ def fill_coords(img, fn, color):
 
     return img
 
-def make_tile(img,color,agent_color=None, holding_color=None):
+
+def make_tile(img, color, agent_color=None, holding_color=None):
     fill_coords(img, point_in_rect(0, 1, 0, 1), color)
     if agent_color is not None:
-        fill_coords(img, point_in_rect(.2,.8,.2,.8), agent_color)
+        fill_coords(img, point_in_rect(.2, .8, .2, .8), agent_color)
     if holding_color is not None:
-        fill_coords(img,point_in_rect(.5,.8,.2,.8), holding_color)
+        fill_coords(img, point_in_rect(.5, .8, .2, .8), holding_color)
+
 
 # def rotate_fn(fin, cx, cy, theta):
 #     def fout(x, y):
@@ -90,8 +95,10 @@ def make_tile(img,color,agent_color=None, holding_color=None):
 def point_in_rect(xmin, xmax, ymin, ymax):
     def fn(x, y):
         return xmin <= x <= xmax and ymin <= y <= ymax
+
     return fn
-#
+
+
 # def point_in_triangle(a, b, c):
 #     a = np.array(a)
 #     b = np.array(b)
@@ -165,19 +172,14 @@ def point_in_rect(xmin, xmax, ymin, ymax):
 #     return img
 
 
-def render(
-        tile_size=80,
-        agent_pos=None,
-        agent_dir=None,
-        highlight_mask=None
-):
+def render(tile_size=80, agent_pos=None, agent_dir=None, highlight_mask=None):
     """
     Render this grid at a given scale
     :param r: target renderer object
     :param tile_size: tile size in pixels
     """
-    height=5
-    width=4
+    height = 5
+    width = 4
     if highlight_mask is None:
         highlight_mask = np.zeros(shape=(width, height), dtype=np.bool)
 
@@ -191,14 +193,17 @@ def render(
     for j in range(0, height):
         for i in range(0, width):
             #cell = self.get(i, j)
-            cell = (i,j)
+            cell = (i, j)
             agent_here = np.array_equal(agent_pos, (i, j))
             tile_size_n = 4
             subdivs = 20
-            tile_img = np.zeros(shape=(tile_size_n * subdivs, tile_size_n * subdivs, 3), dtype=np.uint8)
+            tile_img = np.zeros(shape=(tile_size_n * subdivs,
+                                       tile_size_n * subdivs, 3),
+                                dtype=np.uint8)
 
             # Draw the grid lines (top and left edges)
-            # fill_coords(img, point_in_rect(0.01,0.990,0.01,0.990),(200,200,200))
+            # fill_coords(img, point_in_rect(0.01, 0.990, 0.01, 0.990),
+            #             (200, 200, 200))
             make_tile(tile_img, (100, 100, 200))
 
             ymin = j * tile_size

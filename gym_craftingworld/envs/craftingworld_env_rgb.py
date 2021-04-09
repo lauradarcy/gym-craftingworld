@@ -19,21 +19,28 @@ DOWN = 2
 LEFT = 3
 
 PICKUPABLE = ['sticks', 'axe', 'hammer']
-OBJECTS = ['sticks', 'axe', 'hammer', 'rock', 'tree', 'bread', 'house', 'wheat']
+OBJECTS = [
+    'sticks', 'axe', 'hammer', 'rock', 'tree', 'bread', 'house', 'wheat'
+]
 
 OBJECT_RATIOS = [1, 1, 1, 1, 1, 1, 1, 1]
 OBJECT_PROBS = [x / sum(OBJECT_RATIOS) for x in OBJECT_RATIOS]
 
-COLORS = [(110, 69, 39), (255, 105, 180), (100, 100, 200), (100, 100, 100), (0, 128, 0), (205, 133, 63), (197, 91, 97),
-          (240, 230, 140)]
-COLORS_rgba = [(110 / 255.0, 69 / 255.0, 39 / 255.0, .9), (255 / 255.0, 105 / 255.0, 180 / 255.0, .9),
-               (100 / 255.0, 100 / 255.0, 200 / 255.0, .9), (100 / 255.0, 100 / 255.0, 100 / 255.0, .9),
-               (0 / 255.0, 128 / 255.0, 0 / 255.0, .9), (205 / 255.0, 133 / 255.0, 63 / 255.0, .9),
-               (197 / 255.0, 91 / 255.0, 97 / 255.0, .9), (240 / 255.0, 230 / 255.0, 140 / 255.0, .9)]
+COLORS = [(110, 69, 39), (255, 105, 180), (100, 100, 200), (100, 100, 100),
+          (0, 128, 0), (205, 133, 63), (197, 91, 97), (240, 230, 140)]
+COLORS_rgba = [(110 / 255.0, 69 / 255.0, 39 / 255.0, .9),
+               (255 / 255.0, 105 / 255.0, 180 / 255.0, .9),
+               (100 / 255.0, 100 / 255.0, 200 / 255.0, .9),
+               (100 / 255.0, 100 / 255.0, 100 / 255.0, .9),
+               (0 / 255.0, 128 / 255.0, 0 / 255.0, .9),
+               (205 / 255.0, 133 / 255.0, 63 / 255.0, .9),
+               (197 / 255.0, 91 / 255.0, 97 / 255.0, .9),
+               (240 / 255.0, 230 / 255.0, 140 / 255.0, .9)]
 TASK_COLORS = ['red', 'green']
-TASK_LIST = ['MakeBread', 'EatBread', 'BuildHouse', 'ChopTree', 'ChopRock', 'GoToHouse', 'MoveAxe', 'MoveHammer',
-             'MoveSticks']
-
+TASK_LIST = [
+    'MakeBread', 'EatBread', 'BuildHouse', 'ChopTree', 'ChopRock', 'GoToHouse',
+    'MoveAxe', 'MoveHammer', 'MoveSticks'
+]
 
 # TODO: check how multigoal worlds work in AI gym, does this affect use of done var, do we give a task to complete, etc
 # TODO: maybe explicitly encode x and y as a feature or NOT convolutions - maybe to rbg encoding also?
@@ -45,9 +52,19 @@ class CraftingWorldEnvRGB(gym.GoalEnv):
 
     metadata = {'render.modes': ['human', 'Non']}
 
-    def __init__(self, size=(10, 10), fixed_init_state=None, fixed_goal=None, tasks_to_ignore=None, store_gif=False,
-                 render_flipping=False, max_steps=300, task_list=TASK_LIST, pos_rewards=False, binary_rewards=False,
-                 selected_tasks=None, stacking=True):
+    def __init__(self,
+                 size=(10, 10),
+                 fixed_init_state=None,
+                 fixed_goal=None,
+                 tasks_to_ignore=None,
+                 store_gif=False,
+                 render_flipping=False,
+                 max_steps=300,
+                 task_list=TASK_LIST,
+                 pos_rewards=False,
+                 binary_rewards=False,
+                 selected_tasks=None,
+                 stacking=True):
         """
         change the following parameters to create a custom environment
 
@@ -65,7 +82,7 @@ class CraftingWorldEnvRGB(gym.GoalEnv):
         self.metadata = {'render.modes': ['human', 'Non']}
 
         self.num_rows, self.num_cols = size
-        self.agent_start = (int(self.num_rows/2), int(self.num_cols/2))
+        self.agent_start = (int(self.num_rows / 2), int(self.num_cols / 2))
 
         self.max_steps = max_steps
 
@@ -80,60 +97,76 @@ class CraftingWorldEnvRGB(gym.GoalEnv):
         self.selected_tasks = selected_tasks
         self.stacking = stacking
 
-        self.observation_space = spaces.Dict(dict(observation=spaces.Box(low=0, high=255, shape=(self.num_rows*4,
-                                                                                                 self.num_cols*4, 3),
-                                                                         dtype=int),
-                                                  desired_goal=spaces.Box(low=0, high=255, shape=(self.num_rows*4,
-                                                                                                  self.num_cols*4, 3),
-                                                                          dtype=int),
-                                                  achieved_goal=spaces.Box(low=0, high=255, shape=(self.num_rows*4,
-                                                                                                   self.num_cols*4, 3),
-                                                                           dtype=int),
-                                                  init_observation=spaces.Box(low=0, high=255, shape=(self.num_rows * 4,
-                                                                                                 self.num_cols * 4, 3),
-                                                                         dtype=int)
-                                                  ))
+        self.observation_space = spaces.Dict(
+            dict(observation=spaces.Box(low=0,
+                                        high=255,
+                                        shape=(self.num_rows * 4,
+                                               self.num_cols * 4, 3),
+                                        dtype=int),
+                 desired_goal=spaces.Box(low=0,
+                                         high=255,
+                                         shape=(self.num_rows * 4,
+                                                self.num_cols * 4, 3),
+                                         dtype=int),
+                 achieved_goal=spaces.Box(low=0,
+                                          high=255,
+                                          shape=(self.num_rows * 4,
+                                                 self.num_cols * 4, 3),
+                                          dtype=int),
+                 init_observation=spaces.Box(low=0,
+                                             high=255,
+                                             shape=(self.num_rows * 4,
+                                                    self.num_cols * 4, 3),
+                                             dtype=int)))
 
-        self.observation_vector_space = spaces.Dict(dict(observation=spaces.Box(low=0, high=1,
-                                                                                shape=(self.num_rows, self.num_cols,
-                                                                                       len(OBJECTS) + 1 + len(
-                                                                                           PICKUPABLE)),
-                                                                                dtype=int),
-                                                         desired_goal=spaces.Box(low=0, high=1,
-                                                                                 shape=(1, len(self.task_list)),
-                                                                                 dtype=int),
-                                                         achieved_goal=spaces.Box(low=0, high=1,
-                                                                                  shape=(1, len(self.task_list)),
-                                                                                  dtype=int),
-                                                         init_observation=spaces.Box(low=0, high=1,
-                                                                                shape=(self.num_rows, self.num_cols,
-                                                                                       len(OBJECTS) + 1 + len(
-                                                                                           PICKUPABLE)),
-                                                                                dtype=int)
-                                                         ))
+        self.observation_vector_space = spaces.Dict(
+            dict(observation=spaces.Box(low=0,
+                                        high=1,
+                                        shape=(self.num_rows, self.num_cols,
+                                               len(OBJECTS) + 1 +
+                                               len(PICKUPABLE)),
+                                        dtype=int),
+                 desired_goal=spaces.Box(low=0,
+                                         high=1,
+                                         shape=(1, len(self.task_list)),
+                                         dtype=int),
+                 achieved_goal=spaces.Box(low=0,
+                                          high=1,
+                                          shape=(1, len(self.task_list)),
+                                          dtype=int),
+                 init_observation=spaces.Box(
+                     low=0,
+                     high=1,
+                     shape=(self.num_rows, self.num_cols,
+                            len(OBJECTS) + 1 + len(PICKUPABLE)),
+                     dtype=int)))
 
         # TODO: wrapper that flattens to regular env, wrapper that changes desired goal to dict of rewards, reward wrapper
 
         self.fixed_goal = fixed_goal
         if self.fixed_goal:
-            self.desired_goal_vector = np.zeros(shape=(1, len(self.task_list)), dtype=int)
+            self.desired_goal_vector = np.zeros(shape=(1, len(self.task_list)),
+                                                dtype=int)
             for goal in self.fixed_goal:
                 if goal not in self.task_list:
                     self.fixed_goal.remove(goal)
                     continue
                 self.desired_goal_vector[0][self.task_list.index(goal)] = 1
         else:
-            self.desired_goal_vector = self.observation_vector_space.spaces['achieved_goal'].low
+            self.desired_goal_vector = self.observation_vector_space.spaces[
+                'achieved_goal'].low
 
-        self.achieved_goal_vector = np.zeros(shape=(1, len(self.task_list)), dtype=int)
+        self.achieved_goal_vector = np.zeros(shape=(1, len(self.task_list)),
+                                             dtype=int)
 
         self.fixed_init_state = fixed_init_state
 
         if self.fixed_init_state is not None:
             self.obs_one_hot = copy.deepcopy(self.fixed_init_state)
-            self.agent_pos = coord(int(np.where(np.argmax(self.obs_one_hot, axis=2) == 8)[0]),
-                                   int(np.where(np.argmax(self.obs_one_hot, axis=2) == 8)[1]), self.num_rows - 1,
-                                   self.num_cols - 1)
+            self.agent_pos = coord(
+                int(np.where(np.argmax(self.obs_one_hot, axis=2) == 8)[0]),
+                int(np.where(np.argmax(self.obs_one_hot, axis=2) == 8)[1]),
+                self.num_rows - 1, self.num_cols - 1)
         else:
             self.obs_one_hot, self.agent_pos = self.sample_state()
 
@@ -141,20 +174,30 @@ class CraftingWorldEnvRGB(gym.GoalEnv):
         #                     'achieved_goal': self.achieved_goal_vector}
         self.INIT_OBS_VECTOR = copy.deepcopy(self.obs_one_hot)
         self.INIT_OBS = self.render(self.INIT_OBS_VECTOR)
-        self.observation_vector = {'observation': self.obs_one_hot, 'desired_goal': self.desired_goal_vector,
-                                   'achieved_goal': self.achieved_goal_vector,
-                                   'init_observation': self.INIT_OBS_VECTOR}
+        self.observation_vector = {
+            'observation': self.obs_one_hot,
+            'desired_goal': self.desired_goal_vector,
+            'achieved_goal': self.achieved_goal_vector,
+            'init_observation': self.INIT_OBS_VECTOR
+        }
         # self.init_obs_one_hot = copy.deepcopy(self.obs_one_hot)
         self.init_observation_vector = copy.deepcopy(self.observation_vector)
 
         self.desired_goal = self.imagine_obs()
-        self.observation = {'observation': self.render(self.obs_one_hot), 'desired_goal': self.desired_goal,
-                            'achieved_goal': self.render(self.obs_one_hot),
-                            'init_observation': self.INIT_OBS}
+        self.observation = {
+            'observation': self.render(self.obs_one_hot),
+            'desired_goal': self.desired_goal,
+            'achieved_goal': self.render(self.obs_one_hot),
+            'init_observation': self.INIT_OBS
+        }
         self.init_observation = copy.deepcopy(self.observation)
 
-        self.ACTIONS = [coord(-1, 0, name='up'), coord(0, 1, name='right'), coord(1, 0, name='down'),
-                        coord(0, -1, name='left'), 'pickup', 'drop']
+        self.ACTIONS = [
+            coord(-1, 0, name='up'),
+            coord(0, 1, name='right'),
+            coord(1, 0, name='down'),
+            coord(0, -1, name='left'), 'pickup', 'drop'
+        ]
 
         self.action_space = spaces.Discrete(len(self.ACTIONS))
 
@@ -177,48 +220,66 @@ class CraftingWorldEnvRGB(gym.GoalEnv):
         # save episode as gif
         if self.store_gif is True and self.step_num != 0:
             # print('debug_final', len(self.ims))
-            anim = animation.ArtistAnimation(self.fig, self.ims, interval=100000, blit=False, repeat_delay=1000)
-            anim.save('renders/env{}/episode_{}_({}).gif'.format(self.env_id, self.ep_no, self.step_num),
-                      writer=animation.PillowWriter(), dpi=100)
+            anim = animation.ArtistAnimation(self.fig,
+                                             self.ims,
+                                             interval=100000,
+                                             blit=False,
+                                             repeat_delay=1000)
+            anim.save('renders/env{}/episode_{}_({}).gif'.format(
+                self.env_id, self.ep_no, self.step_num),
+                      writer=animation.PillowWriter(),
+                      dpi=100)
 
         if self.render_flipping is True:
             self.store_gif = render_next
 
         if self.fixed_goal:
-            self.desired_goal_vector = np.zeros(shape=(1, len(self.task_list)), dtype=int)
+            self.desired_goal_vector = np.zeros(shape=(1, len(self.task_list)),
+                                                dtype=int)
             for goal in self.fixed_goal:
                 self.desired_goal_vector[0][self.task_list.index(goal)] = 1
         elif self.selected_tasks is not None:
-            self.desired_goal_vector = np.zeros(shape=(1, len(self.task_list)), dtype=int)
-            number_of_tasks = np.random.randint(len(self.selected_tasks)) + 1 if self.stacking is True else 1
+            self.desired_goal_vector = np.zeros(shape=(1, len(self.task_list)),
+                                                dtype=int)
+            number_of_tasks = np.random.randint(len(
+                self.selected_tasks)) + 1 if self.stacking is True else 1
             tasks = random.sample(self.selected_tasks, k=number_of_tasks)
             for task in tasks:
                 self.desired_goal_vector[0][self.task_list.index(task)] = 1
         else:
-            self.desired_goal_vector = np.random.randint(2, size=(1, len(self.task_list)))
+            self.desired_goal_vector = np.random.randint(
+                2, size=(1, len(self.task_list)))
 
-        self.achieved_goal_vector = np.zeros(shape=(1, len(self.task_list)), dtype=int)
+        self.achieved_goal_vector = np.zeros(shape=(1, len(self.task_list)),
+                                             dtype=int)
 
         if self.fixed_init_state is not None:
             self.obs_one_hot = copy.deepcopy(self.fixed_init_state)
-            self.agent_pos = coord(int(np.where(np.argmax(self.obs_one_hot, axis=2) == 8)[0]),
-                                   int(np.where(np.argmax(self.obs_one_hot, axis=2) == 8)[1]), self.num_rows - 1,
-                                   self.num_cols - 1)
+            self.agent_pos = coord(
+                int(np.where(np.argmax(self.obs_one_hot, axis=2) == 8)[0]),
+                int(np.where(np.argmax(self.obs_one_hot, axis=2) == 8)[1]),
+                self.num_rows - 1, self.num_cols - 1)
         else:
             self.obs_one_hot, self.agent_pos = self.sample_state()
 
         self.INIT_OBS_VECTOR = copy.deepcopy(self.obs_one_hot)
         self.INIT_OBS = self.render(self.INIT_OBS_VECTOR)
-        self.observation_vector = {'observation': self.obs_one_hot, 'desired_goal': self.desired_goal_vector,
-                                   'achieved_goal': self.achieved_goal_vector,
-                                   'init_observation': self.INIT_OBS_VECTOR}
+        self.observation_vector = {
+            'observation': self.obs_one_hot,
+            'desired_goal': self.desired_goal_vector,
+            'achieved_goal': self.achieved_goal_vector,
+            'init_observation': self.INIT_OBS_VECTOR
+        }
 
         self.init_observation_vector = copy.deepcopy(self.observation_vector)
 
         self.desired_goal = self.imagine_obs()
-        self.observation = {'observation': self.render(self.obs_one_hot), 'desired_goal': self.desired_goal,
-                            'achieved_goal': self.render(self.obs_one_hot),
-                            'init_observation': self.INIT_OBS}
+        self.observation = {
+            'observation': self.render(self.obs_one_hot),
+            'desired_goal': self.desired_goal,
+            'achieved_goal': self.render(self.obs_one_hot),
+            'init_observation': self.INIT_OBS
+        }
         self.init_observation = copy.deepcopy(self.observation)
 
         self.reward = self.calculate_rewards()
@@ -245,20 +306,34 @@ class CraftingWorldEnvRGB(gym.GoalEnv):
         :return obs: a sample obs
         :return agent_position: position of the agent within the obs
         """
-        state = np.zeros(self.observation_vector_space.spaces['observation'].shape, dtype=int)
+        state = np.zeros(
+            self.observation_vector_space.spaces['observation'].shape,
+            dtype=int)
         for object_type, list_of_positions in object_dictionary.items():
             object_val = OBJECTS.index(object_type)
             for coordinate in list_of_positions:
-                state[coordinate[0], coordinate[1]] = self.one_hot(obj=object_val, agent=False, holding=None)
-        object_at_agent_pos, _, _ = CraftingWorldEnvRGB.translate_one_hot(state[agent_pos.row, agent_pos.col])
-        state[agent_pos.row, agent_pos.col] = self.one_hot(obj=object_at_agent_pos, agent=True, holding=None)
+                state[coordinate[0],
+                      coordinate[1]] = self.one_hot(obj=object_val,
+                                                    agent=False,
+                                                    holding=None)
+        object_at_agent_pos, _, _ = CraftingWorldEnvRGB.translate_one_hot(
+            state[agent_pos.row, agent_pos.col])
+        state[agent_pos.row,
+              agent_pos.col] = self.one_hot(obj=object_at_agent_pos,
+                                            agent=True,
+                                            holding=None)
         final_goal = self.render(state=state)
         # return state, agent_pos
         return final_goal
 
-    def __convert_item(self, object_dictionary, item_one, item_two=None, addl_item=None):
+    def __convert_item(self,
+                       object_dictionary,
+                       item_one,
+                       item_two=None,
+                       addl_item=None):
         if addl_item is not None:
-            item = random.choice(object_dictionary[item_one] + object_dictionary[addl_item])
+            item = random.choice(object_dictionary[item_one] +
+                                 object_dictionary[addl_item])
         else:
             item = random.choice(object_dictionary[item_one])
         object_dictionary[item_one].remove(item)
@@ -267,20 +342,28 @@ class CraftingWorldEnvRGB(gym.GoalEnv):
         return object_dictionary
 
     def imagine_obs(self):
-        init_objects = {obj: self.get_objects(code, self.init_observation_vector['observation']) for code, obj in
-                        enumerate(OBJECTS)}
+        init_objects = {
+            obj: self.get_objects(code,
+                                  self.init_observation_vector['observation'])
+            for code, obj in enumerate(OBJECTS)
+        }
         agent_pos = self.agent_pos
         final_objects = copy.deepcopy(init_objects)
 
-        tasks = {self.task_list[idx]: value for idx, value in enumerate(self.desired_goal_vector[0])}
+        tasks = {
+            self.task_list[idx]: value
+            for idx, value in enumerate(self.desired_goal_vector[0])
+        }
         for key, value in tasks.items():
             if value == 1:
                 if key == 'MakeBread':
-                    final_objects = self.__convert_item(final_objects, 'wheat', 'bread')
+                    final_objects = self.__convert_item(
+                        final_objects, 'wheat', 'bread')
                 if key == 'EatBread':
                     final_objects = self.__convert_item(final_objects, 'bread')
                 if key == 'ChopTree':
-                    final_objects = self.__convert_item(final_objects, 'tree', 'sticks')
+                    final_objects = self.__convert_item(
+                        final_objects, 'tree', 'sticks')
                 if key == 'ChopRock':
                     final_objects = self.__convert_item(final_objects, 'rock')
 
@@ -288,14 +371,21 @@ class CraftingWorldEnvRGB(gym.GoalEnv):
         for i in final_objects.values():
             occupied_spaces += i
 
-        moving_tasks = {'MoveAxe': 'axe', 'MoveHammer': 'hammer', 'MoveSticks': 'sticks'}
+        moving_tasks = {
+            'MoveAxe': 'axe',
+            'MoveHammer': 'hammer',
+            'MoveSticks': 'sticks'
+        }
         for key, value in moving_tasks.items():
             if key in tasks:
                 if tasks[key] == 1:
                     current_location = random.choice(final_objects[value])
                     occupied = True
                     while occupied:
-                        new_location = [random.randint(0, self.num_rows - 1), random.randint(0, self.num_cols - 1)]
+                        new_location = [
+                            random.randint(0, self.num_rows - 1),
+                            random.randint(0, self.num_cols - 1)
+                        ]
                         if new_location not in occupied_spaces:
                             final_objects[value].remove(current_location)
                             occupied_spaces.remove(current_location)
@@ -306,7 +396,8 @@ class CraftingWorldEnvRGB(gym.GoalEnv):
         for key, value in tasks.items():
             if value == 1:
                 if key == 'BuildHouse':
-                    final_objects = self.__convert_item(final_objects, 'sticks', 'house')
+                    final_objects = self.__convert_item(
+                        final_objects, 'sticks', 'house')
 
                 if key == 'GoToHouse':
                     new_agent_pos = random.choice(final_objects['house'])
@@ -332,7 +423,8 @@ class CraftingWorldEnvRGB(gym.GoalEnv):
 
         # pull information from agent's current location
         current_cell = self.obs_one_hot[self.agent_pos.row, self.agent_pos.col]
-        object_at_current_pos, _, what_agent_is_holding = CraftingWorldEnvRGB.translate_one_hot(current_cell)
+        object_at_current_pos, _, what_agent_is_holding = CraftingWorldEnvRGB.translate_one_hot(
+            current_cell)
 
         # Execute one time step within the environment
         if action_value == 'pickup':
@@ -345,8 +437,10 @@ class CraftingWorldEnvRGB(gym.GoalEnv):
                     pass  # print('can\'t pick up this object')
                 else:
                     # print('picked up', CraftingWorldEnv.translate_state_code(obj_code))
-                    self.obs_one_hot[self.agent_pos.row, self.agent_pos.col] = self.one_hot(agent=True,
-                                                                                            holding=object_at_current_pos)
+                    self.obs_one_hot[self.agent_pos.row,
+                                     self.agent_pos.col] = self.one_hot(
+                                         agent=True,
+                                         holding=object_at_current_pos)
 
         elif action_value == 'drop':
             if what_agent_is_holding is None:
@@ -356,22 +450,32 @@ class CraftingWorldEnvRGB(gym.GoalEnv):
                     pass  # print('can only drop items on an empty spot')
                 else:
                     # print('dropped', CraftingWorldEnv.translate_state_code(holding_code+1))
-                    self.obs_one_hot[self.agent_pos.row, self.agent_pos.col] = self.one_hot(obj=what_agent_is_holding,
-                                                                                            agent=True)
+                    self.obs_one_hot[self.agent_pos.row,
+                                     self.agent_pos.col] = self.one_hot(
+                                         obj=what_agent_is_holding, agent=True)
 
         else:
             self.__move_agent(action_value)
 
         task_success = self.eval_tasks()
         self.achieved_goal_vector = self.task_one_hot(task_success)
-        self.observation_vector = {'observation': self.obs_one_hot, 'desired_goal': self.desired_goal_vector,
-                                   'achieved_goal': self.achieved_goal_vector, 'init_observation': self.INIT_OBS_VECTOR}
-        self.observation = {'observation': self.render(self.obs_one_hot), 'desired_goal': self.desired_goal,
-                            'achieved_goal': self.render(self.obs_one_hot), 'init_observation': self.INIT_OBS}
+        self.observation_vector = {
+            'observation': self.obs_one_hot,
+            'desired_goal': self.desired_goal_vector,
+            'achieved_goal': self.achieved_goal_vector,
+            'init_observation': self.INIT_OBS_VECTOR
+        }
+        self.observation = {
+            'observation': self.render(self.obs_one_hot),
+            'desired_goal': self.desired_goal,
+            'achieved_goal': self.render(self.obs_one_hot),
+            'init_observation': self.INIT_OBS
+        }
         observation = self.observation
         self.reward = self.calculate_rewards()
         reward = self.reward
-        reward_lim = 0 if self.pos_rewards is False else np.sum(self.desired_goal_vector)
+        reward_lim = 0 if self.pos_rewards is False else np.sum(
+            self.desired_goal_vector)
         done = False if self.step_num < self.max_steps or reward == reward_lim else True
 
         # render if required
@@ -381,8 +485,11 @@ class CraftingWorldEnvRGB(gym.GoalEnv):
             else:
                 self.__render_gif(action_value)
 
-        return observation, reward, done, {"task_success": task_success, "desired_goal": self.desired_goal_vector,
-                                           "achieved_goal": self.achieved_goal_vector}
+        return observation, reward, done, {
+            "task_success": task_success,
+            "desired_goal": self.desired_goal_vector,
+            "achieved_goal": self.achieved_goal_vector
+        }
 
     def __move_agent(self, action):
         """
@@ -403,10 +510,13 @@ class CraftingWorldEnvRGB(gym.GoalEnv):
             return
 
         new_pos_encoding = self.obs_one_hot[new_pos.row, new_pos.col]
-        object_at_new_pos, _, _ = CraftingWorldEnvRGB.translate_one_hot(new_pos_encoding)
+        object_at_new_pos, _, _ = CraftingWorldEnvRGB.translate_one_hot(
+            new_pos_encoding)
 
-        current_pos_encoding = self.obs_one_hot[self.agent_pos.row, self.agent_pos.col]
-        object_at_current_pos, _, what_agent_is_holding = CraftingWorldEnvRGB.translate_one_hot(current_pos_encoding)
+        current_pos_encoding = self.obs_one_hot[self.agent_pos.row,
+                                                self.agent_pos.col]
+        object_at_current_pos, _, what_agent_is_holding = CraftingWorldEnvRGB.translate_one_hot(
+            current_pos_encoding)
 
         if object_at_new_pos == 3:  # rock in new position
             if what_agent_is_holding != 2:  # agent doesn't have hammer
@@ -435,12 +545,15 @@ class CraftingWorldEnvRGB(gym.GoalEnv):
             object_at_new_pos = None
 
         # update contents of new position
-        self.obs_one_hot[new_pos.row, new_pos.col] = self.one_hot(obj=object_at_new_pos,
-                                                                  agent=True, holding=what_agent_is_holding)
+        self.obs_one_hot[new_pos.row, new_pos.col] = self.one_hot(
+            obj=object_at_new_pos, agent=True, holding=what_agent_is_holding)
 
         # update contents of old position
-        self.obs_one_hot[self.agent_pos.row, self.agent_pos.col] = self.one_hot(obj=object_at_current_pos, agent=False,
-                                                                                holding=None)
+        self.obs_one_hot[self.agent_pos.row,
+                         self.agent_pos.col] = self.one_hot(
+                             obj=object_at_current_pos,
+                             agent=False,
+                             holding=None)
 
         # update agent's location
         self.agent_pos = new_pos
@@ -470,7 +583,8 @@ class CraftingWorldEnvRGB(gym.GoalEnv):
 
                 cell = state[j, i]
                 # objects = np.argmax(cell[:len(OBJECTS)]) if cell[:len(OBJECTS)].any() == 1 else None
-                objects, agent, holding = CraftingWorldEnvRGB.translate_one_hot(cell)
+                objects, agent, holding = CraftingWorldEnvRGB.translate_one_hot(
+                    cell)
 
                 # holding = np.argmax(cell[len(OBJECTS)+1:]) if cell[len(OBJECTS)+1:].any() == 1 else None
 
@@ -481,7 +595,8 @@ class CraftingWorldEnvRGB(gym.GoalEnv):
                 if holding is not None:
                     agent_holding = COLORS[holding]
 
-                tile_img = np.zeros(shape=(tile_size, tile_size, 3), dtype=np.uint8)
+                tile_img = np.zeros(shape=(tile_size, tile_size, 3),
+                                    dtype=np.uint8)
                 make_tile(tile_img, color, agent_color, agent_holding)
 
                 ymin, ymax = j * tile_size, (j + 1) * tile_size
@@ -500,31 +615,56 @@ class CraftingWorldEnvRGB(gym.GoalEnv):
         img2 = self.render(mode='Non')
         im = plt.imshow(img2, animated=True)
 
-        desired_goals = "\n".join(wrap(
-            ', '.join([self.task_list[key] for key, value in enumerate(self.desired_goal_vector[0]) if value == 1]),
-            50))
-        achieved_goals = "\n".join(wrap(
-            ', '.join([self.task_list[key] for key, value in enumerate(self.achieved_goal_vector[0]) if value == 1]),
-            50))
+        desired_goals = "\n".join(
+            wrap(
+                ', '.join([
+                    self.task_list[key]
+                    for key, value in enumerate(self.desired_goal_vector[0])
+                    if value == 1
+                ]), 50))
+        achieved_goals = "\n".join(
+            wrap(
+                ', '.join([
+                    self.task_list[key]
+                    for key, value in enumerate(self.achieved_goal_vector[0])
+                    if value == 1
+                ]), 50))
         title_str = """
 Episode {}: step {} - action choice: {}
-Desired Goals: {}""".format(self.ep_no, self.step_num, action_label, desired_goals)
+Desired Goals: {}""".format(self.ep_no, self.step_num, action_label,
+                            desired_goals)
 
-        bottom_text = "Achieved Goals: {}\nd_g: {}\na_g: {},   r: {}".format(achieved_goals, self.desired_goal_vector,
-                                                                             self.achieved_goal_vector, self.reward)
-        ttl = plt.text(0.00, 1.01, title_str, horizontalalignment='left',
-                       verticalalignment='bottom', transform=self.ax.transAxes)
-        txt = plt.text(0.00, -0.02, bottom_text, horizontalalignment='left',
-                       verticalalignment='top', transform=self.ax.transAxes)
+        bottom_text = "Achieved Goals: {}\nd_g: {}\na_g: {},   r: {}".format(
+            achieved_goals, self.desired_goal_vector,
+            self.achieved_goal_vector, self.reward)
+        ttl = plt.text(0.00,
+                       1.01,
+                       title_str,
+                       horizontalalignment='left',
+                       verticalalignment='bottom',
+                       transform=self.ax.transAxes)
+        txt = plt.text(0.00,
+                       -0.02,
+                       bottom_text,
+                       horizontalalignment='left',
+                       verticalalignment='top',
+                       transform=self.ax.transAxes)
         plt.xticks([])
         plt.yticks([])
-        patches = [mpatches.Patch(color=COLORS_rgba[i], label="{l}".format(l=OBJECTS[i])) for i in range(len(COLORS))]
+        patches = [
+            mpatches.Patch(color=COLORS_rgba[i],
+                           label="{l}".format(l=OBJECTS[i]))
+            for i in range(len(COLORS))
+        ]
         '''patches.append(mpatches.Patch(color='white', label="Tasks:"))
         tasks = [key for key,value in enumerate(self.desired_goal[0]) if value == 1]
         patches += [mpatches.Patch(color=TASK_COLORS[self.achieved_goal[0][idx]],
                                    label=self.task_list[idx]) for idx in tasks]'''
         # put those patched as legend-handles into the legend
-        plt.legend(handles=patches, bbox_to_anchor=(1.025, 1), loc=2, borderaxespad=0.)
+        plt.legend(handles=patches,
+                   bbox_to_anchor=(1.025, 1),
+                   loc=2,
+                   borderaxespad=0.)
 
         self.ims.append([im, ttl, txt])
 
@@ -536,11 +676,14 @@ Desired Goals: {}""".format(self.ep_no, self.step_num, action_label, desired_goa
         """
         objects = [_ for _ in range(1, 10)]
         objects = [self.one_hot(i - 1) for i in objects]
-        grid = objects + [[0 for _ in range(self.observation_vector_space.spaces['observation'].shape[2])]
-                          for _ in range(self.num_rows * self.num_cols - len(objects))]
+        grid = objects + [[
+            0 for _ in range(
+                self.observation_vector_space.spaces['observation'].shape[2])
+        ] for _ in range(self.num_rows * self.num_cols - len(objects))]
         random.shuffle(grid)
 
-        state = np.asarray(grid, dtype=int).reshape(self.observation_vector_space.spaces['observation'].shape)
+        state = np.asarray(grid, dtype=int).reshape(
+            self.observation_vector_space.spaces['observation'].shape)
 
         agent_position = coord(int(np.where(np.argmax(state, axis=2) == 8)[0]),
                                int(np.where(np.argmax(state, axis=2) == 8)[1]),
@@ -554,19 +697,23 @@ Desired Goals: {}""".format(self.ep_no, self.step_num, action_label, desired_goa
         :return obs: a sample observation
         :return agent_position: position of the agent within the observation
         """
-        objects = [self.one_hot(i - 1) for i in range(1,9)]
-        grid = objects + [[0 for _ in range(self.observation_vector_space.spaces['observation'].shape[2])]
-                          for _ in range(self.num_rows * self.num_cols - len(objects))]
+        objects = [self.one_hot(i - 1) for i in range(1, 9)]
+        grid = objects + [[
+            0 for _ in range(
+                self.observation_vector_space.spaces['observation'].shape[2])
+        ] for _ in range(self.num_rows * self.num_cols - len(objects))]
         random.shuffle(grid)
 
-        state = np.asarray(grid, dtype=int).reshape(self.observation_vector_space.spaces['observation'].shape)
-        while np.argmax(state[self.agent_start[0]][self.agent_start[1]]) in [3, 4, 5, 6]:
+        state = np.asarray(grid, dtype=int).reshape(
+            self.observation_vector_space.spaces['observation'].shape)
+        while np.argmax(state[self.agent_start[0]][self.agent_start[1]]) in [
+                3, 4, 5, 6
+        ]:
             # don't start agent on rock, tree, house or bread
             np.random.shuffle(state)
         agent_encoding = self.one_hot(8)
         state[self.agent_start[0]][self.agent_start[1]] += agent_encoding
-        agent_position = coord(self.agent_start[0],
-                               self.agent_start[1],
+        agent_position = coord(self.agent_start[0], self.agent_start[1],
                                self.num_rows - 1, self.num_cols - 1)
 
         return state, agent_position
@@ -574,20 +721,36 @@ Desired Goals: {}""".format(self.ep_no, self.step_num, action_label, desired_goa
     def eval_tasks(self):
         # TODO: eval_tasks is not efficient (dictcomps are slow) - try to speed this up
         task_success = {}
-        init_objects = {obj: self.get_objects(code, self.init_observation_vector['observation']) for code, obj in
-                        enumerate(OBJECTS)}
-        final_objects = {obj: self.get_objects(code, self.obs_one_hot) for code, obj in enumerate(OBJECTS)}
+        init_objects = {
+            obj: self.get_objects(code,
+                                  self.init_observation_vector['observation'])
+            for code, obj in enumerate(OBJECTS)
+        }
+        final_objects = {
+            obj: self.get_objects(code, self.obs_one_hot)
+            for code, obj in enumerate(OBJECTS)
+        }
 
-        task_success['MakeBread'] = len(final_objects['wheat']) < len(init_objects['wheat'])
-        task_success['EatBread'] = (len(final_objects['bread']) + len(final_objects['wheat'])) < (
-                len(init_objects['bread']) + len(init_objects['wheat']))
-        task_success['BuildHouse'] = len(final_objects['house']) > len(init_objects['house'])
-        task_success['ChopTree'] = len(final_objects['tree']) < len(init_objects['tree'])
-        task_success['ChopRock'] = len(final_objects['rock']) < len(init_objects['rock'])
-        task_success['GoToHouse'] = list((self.agent_pos.row, self.agent_pos.col)) in final_objects['house']
+        task_success['MakeBread'] = len(final_objects['wheat']) < len(
+            init_objects['wheat'])
+        task_success['EatBread'] = (len(final_objects['bread']) + len(
+            final_objects['wheat'])) < (len(init_objects['bread']) +
+                                        len(init_objects['wheat']))
+        task_success['BuildHouse'] = len(final_objects['house']) > len(
+            init_objects['house'])
+        task_success['ChopTree'] = len(final_objects['tree']) < len(
+            init_objects['tree'])
+        task_success['ChopRock'] = len(final_objects['rock']) < len(
+            init_objects['rock'])
+        task_success['GoToHouse'] = list(
+            (self.agent_pos.row, self.agent_pos.col)) in final_objects['house']
         task_success['MoveAxe'] = final_objects['axe'] != init_objects['axe']
-        task_success['MoveHammer'] = final_objects['hammer'] != init_objects['hammer']
-        task_success['MoveSticks'] = False in [stick in init_objects['sticks'] for stick in final_objects['sticks']]
+        task_success[
+            'MoveHammer'] = final_objects['hammer'] != init_objects['hammer']
+        task_success['MoveSticks'] = False in [
+            stick in init_objects['sticks']
+            for stick in final_objects['sticks']
+        ]
 
         return task_success
 
@@ -598,7 +761,10 @@ Desired Goals: {}""".format(self.ep_no, self.step_num, action_label, desired_goa
             # print(task_success[task])
         return goal_one_hot
 
-    def calculate_rewards(self, desired_goal=None, achieved_goal=None, initial_goal=None):
+    def calculate_rewards(self,
+                          desired_goal=None,
+                          achieved_goal=None,
+                          initial_goal=None):
         if self.binary_rewards is True:
             if desired_goal is None:
                 desired_goal = self.observation_vector['desired_goal']
@@ -616,8 +782,9 @@ Desired Goals: {}""".format(self.ep_no, self.step_num, action_label, desired_goa
             initial_goal = self.init_observation['achieved_goal']
         error = np.sqrt(np.sum(np.square(desired_goal - achieved_goal)))
         if self.pos_rewards is True:
-            initial_error = np.sqrt(np.sum(np.square(desired_goal - initial_goal)))
-            return -error/initial_error
+            initial_error = np.sqrt(
+                np.sum(np.square(desired_goal - initial_goal)))
+            return -error / initial_error
         return -error
 
     def get_objects(self, code, state):
@@ -656,7 +823,10 @@ Desired Goals: {}""".format(self.ep_no, self.step_num, action_label, desired_goa
             self.__render_gif()
 
     def one_hot(self, obj=None, agent=False, holding=None):
-        row = [0 for _ in range(self.observation_vector_space.spaces['observation'].shape[2])]
+        row = [
+            0 for _ in range(
+                self.observation_vector_space.spaces['observation'].shape[2])
+        ]
         if obj is not None:
             row[obj] = 1
         if agent:
@@ -667,8 +837,12 @@ Desired Goals: {}""".format(self.ep_no, self.step_num, action_label, desired_goa
 
     @staticmethod
     def translate_one_hot(one_hot_row):
-        object_at_location = np.argmax(one_hot_row[:len(OBJECTS)]) if one_hot_row[:len(OBJECTS)].any() == 1 else None
-        holding = np.argmax(one_hot_row[len(OBJECTS) + 1:]) if one_hot_row[len(OBJECTS) + 1:].any() == 1 else None
+        object_at_location = np.argmax(
+            one_hot_row[:len(OBJECTS)]) if one_hot_row[:len(OBJECTS)].any(
+            ) == 1 else None
+        holding = np.argmax(
+            one_hot_row[len(OBJECTS) +
+                        1:]) if one_hot_row[len(OBJECTS) +
+                                            1:].any() == 1 else None
         agent = one_hot_row[len(OBJECTS)]
         return object_at_location, agent, holding
-

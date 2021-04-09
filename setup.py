@@ -21,5 +21,4 @@ setup(name='gym_craftingworld',
           "Operating System :: OS Independent",
       ],
       python_requires='>=3.6',
-      install_requires=['gym', 'numpy', 'matplotlib', 'pillow']
-      )
+      install_requires=['gym', 'numpy', 'matplotlib', 'pillow'])

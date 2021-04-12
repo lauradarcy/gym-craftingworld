@@ -1,14 +1,15 @@
-import gym
-from gym import spaces
 import copy
-from gym_craftingworld.envs.rendering import *
-import matplotlib.pyplot as plt
-import matplotlib.animation as animation
 import random
-from gym_craftingworld.envs.coordinates import coord
-import matplotlib.patches as mpatches
 import os
 from textwrap import wrap
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
+import matplotlib.animation as animation
+import gym
+from gym import spaces
+from gym_craftingworld.envs.rendering import make_tile
+from gym_craftingworld.envs.coordinates import coord
 
 UP = 0
 RIGHT = 1
@@ -38,8 +39,10 @@ TASK_LIST = [
     'MakeBread', 'EatBread', 'BuildHouse', 'ChopTree', 'ChopRock', 'GoToHouse',
     'MoveAxe', 'MoveHammer', 'MoveSticks'
 ]
-# TODO: check how multigoal worlds work in AI gym, does this affect use of done var, do we give a task to complete, etc
-# TODO: maybe explicitly encode x and y as a feature or NOT convolutions - maybe to rbg encoding also?
+# TODO: check how multigoal worlds work in AI gym, does this affect use of done
+# var, do we give a task to complete, etc
+# TODO: maybe explicitly encode x and y as a feature or NOT convolutions -
+# maybe to rbg encoding also?
 
 
 class CraftingWorldEnv(gym.GoalEnv):
@@ -99,7 +102,8 @@ class CraftingWorldEnv(gym.GoalEnv):
                        shape=(1, len(self.task_list)),
                        dtype=int),
         })
-        # TODO: wrapper that flattens to regular env, wrapper that changes desired goal to dict of rewards, reward wrapper
+        # TODO: wrapper that flattens to regular env, wrapper that changes
+        # desired goal to dict of rewards, reward wrapper
 
         self.fixed_goal = fixed_goal
         if self.fixed_goal:

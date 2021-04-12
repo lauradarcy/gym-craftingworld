@@ -2,16 +2,15 @@ import gym
 from gym import spaces
 import copy
 
-from numpy.core._multiarray_umath import ndarray
-
-from gym_craftingworld.envs.rendering import *
+from gym_craftingworld.envs.rendering import make_tile
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import random
-from gym_craftingworld.envs.coordinates import coord
+from gym_craftingworld.envs.coordinates import Coord
 import matplotlib.patches as mpatches
 import os
 from textwrap import wrap
+import numpy as np
 
 UP = 0
 RIGHT = 1
@@ -163,7 +162,7 @@ class CraftingWorldEnvRGB(gym.GoalEnv):
 
         if self.fixed_init_state is not None:
             self.obs_one_hot = copy.deepcopy(self.fixed_init_state)
-            self.agent_pos = coord(
+            self.agent_pos = Coord(
                 int(np.where(np.argmax(self.obs_one_hot, axis=2) == 8)[0]),
                 int(np.where(np.argmax(self.obs_one_hot, axis=2) == 8)[1]),
                 self.num_rows - 1, self.num_cols - 1)
@@ -193,10 +192,10 @@ class CraftingWorldEnvRGB(gym.GoalEnv):
         self.init_observation = copy.deepcopy(self.observation)
 
         self.ACTIONS = [
-            coord(-1, 0, name='up'),
-            coord(0, 1, name='right'),
-            coord(1, 0, name='down'),
-            coord(0, -1, name='left'), 'pickup', 'drop'
+            Coord(-1, 0, name='up'),
+            Coord(0, 1, name='right'),
+            Coord(1, 0, name='down'),
+            Coord(0, -1, name='left'), 'pickup', 'drop'
         ]
 
         self.action_space = spaces.Discrete(len(self.ACTIONS))
@@ -255,7 +254,7 @@ class CraftingWorldEnvRGB(gym.GoalEnv):
 
         if self.fixed_init_state is not None:
             self.obs_one_hot = copy.deepcopy(self.fixed_init_state)
-            self.agent_pos = coord(
+            self.agent_pos = Coord(
                 int(np.where(np.argmax(self.obs_one_hot, axis=2) == 8)[0]),
                 int(np.where(np.argmax(self.obs_one_hot, axis=2) == 8)[1]),
                 self.num_rows - 1, self.num_cols - 1)
@@ -401,7 +400,7 @@ class CraftingWorldEnvRGB(gym.GoalEnv):
 
                 if key == 'GoToHouse':
                     new_agent_pos = random.choice(final_objects['house'])
-                    agent_pos = coord(new_agent_pos[0], new_agent_pos[1],
+                    agent_pos = Coord(new_agent_pos[0], new_agent_pos[1],
                                       self.num_rows - 1, self.num_cols - 1)
 
         # self.__object_list_to_state(final_objects, agent_pos)
@@ -480,7 +479,7 @@ class CraftingWorldEnvRGB(gym.GoalEnv):
 
         # render if required
         if self.store_gif is True:
-            if type(action_value) == coord:
+            if type(action_value) == Coord:
                 self.__render_gif(action_value.name)
             else:
                 self.__render_gif(action_value)
@@ -685,7 +684,7 @@ Desired Goals: {}""".format(self.ep_no, self.step_num, action_label,
         state = np.asarray(grid, dtype=int).reshape(
             self.observation_vector_space.spaces['observation'].shape)
 
-        agent_position = coord(int(np.where(np.argmax(state, axis=2) == 8)[0]),
+        agent_position = Coord(int(np.where(np.argmax(state, axis=2) == 8)[0]),
                                int(np.where(np.argmax(state, axis=2) == 8)[1]),
                                self.num_rows - 1, self.num_cols - 1)
 
@@ -713,7 +712,7 @@ Desired Goals: {}""".format(self.ep_no, self.step_num, action_label,
             np.random.shuffle(state)
         agent_encoding = self.one_hot(8)
         state[self.agent_start[0]][self.agent_start[1]] += agent_encoding
-        agent_position = coord(self.agent_start[0], self.agent_start[1],
+        agent_position = Coord(self.agent_start[0], self.agent_start[1],
                                self.num_rows - 1, self.num_cols - 1)
 
         return state, agent_position

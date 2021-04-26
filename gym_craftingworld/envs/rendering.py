@@ -1,5 +1,6 @@
 """
-Render the crafting world grid environment, including objects and agents.
+Render the crafting world grid environment, including objects and
+agents.
 """
 
 # import math

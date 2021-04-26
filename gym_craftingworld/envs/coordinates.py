@@ -38,5 +38,5 @@ class Coord():
         return str(self.tuple())
 
     def tuple(self):
-        """return a tuple representation."""
+        """Return a tuple representation."""
         return (self.row, self.col)

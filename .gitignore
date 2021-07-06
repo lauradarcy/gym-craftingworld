@@ -20,7 +20,7 @@ craftingworld_env2.py
 craftingworld_env_one_hot.py
 crafting_world_rgb.py
 old_crafting.py
-
+manual_control.py
 # C extensions
 *.so
 

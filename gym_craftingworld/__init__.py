@@ -7,8 +7,7 @@ register(
     entry_point='gym_craftingworld.envs:CraftingWorldEnv',
 )
 
-register(
-    id='craftingworld-v2',
-    entry_point='gym_craftingworld.envs:CraftingWorldEnv',
-    kwargs={'size': (8, 8)},
-)
+register(id='craftingworld-v2',
+         entry_point='gym_craftingworld.envs:CraftingWorldEnv',
+         kwargs={'size': (8,8)}
+         )

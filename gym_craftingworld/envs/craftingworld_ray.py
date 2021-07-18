@@ -55,7 +55,7 @@ class CraftingWorldEnvRay(gym.GoalEnv):
     metadata = {'render.modes': ['human', 'Non']}
 
     def __init__(self, store_gif=False, render_flipping=False, task_list=TASK_LIST,
-                 selected_tasks=TASK_LIST, stacking=True):
+                 selected_tasks=None, stacking=True):
         """
         change the following parameters to create a custom environment
 
@@ -80,7 +80,6 @@ class CraftingWorldEnvRay(gym.GoalEnv):
                                                                            dtype=int),
                                                   init_observation=spaces.Box(low=0, high=255, shape=(pixel_w, pixel_h,
                                                                                                       3), dtype=int)))
-        # self.observation_space = spaces.Box(low=0, high=255, shape=(pixel_w, pixel_h, 3), dtype=int)
 
         self.observation_vector_space = spaces.Dict(dict(observation=spaces.Box(low=0, high=1,
                                                                                 shape=(STATE_W, STATE_H,
@@ -104,35 +103,27 @@ class CraftingWorldEnvRay(gym.GoalEnv):
 
         self.achieved_goal_vector = np.zeros(shape=(1, len(self.task_list)), dtype=int)
 
-        self.obs_one_hot, self.agent_pos = self.sample_state()
+        self.obs_one_hot, self.agent_pos = None, None
+        self.obs_image = None
+        self.INIT_OBS_VECTOR = None
+        self.INIT_OBS = None
+        self.observation_vector = None
+        self.init_observation_vector = None
 
-        # self.observation = {'observation': self.obs_one_hot, 'desired_goal': self.desired_goal_vector,
-        #                     'achieved_goal': self.achieved_goal_vector}
-        self.INIT_OBS_VECTOR = copy.deepcopy(self.obs_one_hot)
-        self.INIT_OBS = self.render(self.INIT_OBS_VECTOR)
-        self.observation_vector = {'observation': self.obs_one_hot, 'desired_goal': self.desired_goal_vector,
-                                   'achieved_goal': self.achieved_goal_vector,
-                                   'init_observation': self.INIT_OBS_VECTOR}
-        # self.init_obs_one_hot = copy.deepcopy(self.obs_one_hot)
-        self.init_observation_vector = copy.deepcopy(self.observation_vector)
+        self.desired_goal = None
+        self.observation = None
+        self.init_observation = None
 
-        self.desired_goal = self.imagine_obs()
-        self.observation = {'observation': self.render(self.obs_one_hot), 'desired_goal': self.desired_goal,
-                            'achieved_goal': self.render(self.obs_one_hot),
-                            'init_observation': self.INIT_OBS}
-        self.init_observation = copy.deepcopy(self.observation)
         self.ACTIONS = [coord(-1, 0, name='up'), coord(0, 1, name='right'), coord(1, 0, name='down'),
                         coord(0, -1, name='left'), 'pickup', 'drop']
 
         self.action_space = spaces.Discrete(len(self.ACTIONS))
 
-        # self.reward = self.calculate_rewards()
-
         self.store_gif = store_gif
 
         self.render_flipping = render_flipping
         self.env_id = None
-        self.fig, self.ax, self.ims = None, None, None
+        self.fig, self.ax1, self.ax2, self.ims = None, None, None, None
         self.ep_no = 0
         self.step_num = 0
         if self.store_gif:
@@ -148,12 +139,12 @@ class CraftingWorldEnvRay(gym.GoalEnv):
         """
         # save episode as gif
         if self.store_gif is True and self.step_num != 0:
-            # print('debug_final', len(self.ims))
             anim = animation.ArtistAnimation(self.fig, self.ims, interval=100000, blit=False, repeat_delay=1000)
-            tasknums = '-'.join([str(i) for i in np.where(self.desired_goal_vector[0]==1)[0]])
-            cpmleted = '-'.join([str(i) for i in np.where(self.achieved_goal_vector[0]==1)[0]])
-            anim.save('renders/env{}/E{}({})_{}({}).gif'.format(self.env_id, self.ep_no, self.step_num, tasknums, cpmleted),
-                      writer=animation.PillowWriter(), dpi=100)
+            tasknums = '-'.join([str(i) for i in np.where(self.desired_goal_vector[0] == 1)[0]])
+            cpmleted = '-'.join([str(i) for i in np.where(self.achieved_goal_vector[0] == 1)[0]])
+            anim.save(
+                'renders/env{}/E{}({})_{}({}).gif'.format(self.env_id, self.ep_no, self.step_num, tasknums, cpmleted),
+                writer=animation.PillowWriter(), dpi=100)
 
         if self.render_flipping is True:
             self.store_gif = render_next
@@ -162,7 +153,7 @@ class CraftingWorldEnvRay(gym.GoalEnv):
             self.desired_goal_vector = np.zeros(shape=(1, len(self.task_list)), dtype=int)
             number_of_tasks = self.np_random.randint(len(self.selected_tasks)) + 1 if self.stacking is True else 1
             # tasks = self.np_random.sample(self.selected_tasks, k=number_of_tasks)
-            task_idx = self.np_random.randint(0,len(self.selected_tasks)+1,size=number_of_tasks)
+            task_idx = self.np_random.randint(0, len(self.selected_tasks) + 1, size=number_of_tasks)
             for task in task_idx:
                 self.desired_goal_vector[0][task] = 1
                 # self.desired_goal_vector[0][self.task_list.index(task)] = 1
@@ -174,7 +165,7 @@ class CraftingWorldEnvRay(gym.GoalEnv):
         self.obs_one_hot, self.agent_pos = self.sample_state()
 
         self.INIT_OBS_VECTOR = copy.deepcopy(self.obs_one_hot)
-        self.INIT_OBS = self.render(self.INIT_OBS_VECTOR)
+
         self.observation_vector = {'observation': self.obs_one_hot, 'desired_goal': self.desired_goal_vector,
                                    'achieved_goal': self.achieved_goal_vector,
                                    'init_observation': self.INIT_OBS_VECTOR}
@@ -182,12 +173,13 @@ class CraftingWorldEnvRay(gym.GoalEnv):
         self.init_observation_vector = copy.deepcopy(self.observation_vector)
 
         self.desired_goal = self.imagine_obs()
-        self.observation = {'observation': self.render(self.obs_one_hot), 'desired_goal': self.desired_goal,
-                            'achieved_goal': self.render(self.obs_one_hot),
+        self.obs_image = self.render(self.obs_one_hot)
+        self.INIT_OBS = copy.deepcopy(self.obs_image)
+        self.observation = {'observation': self.obs_image, 'desired_goal': self.desired_goal,
+                            'achieved_goal': self.obs_image,
                             'init_observation': self.INIT_OBS}
-        self.init_observation = copy.deepcopy(self.observation)
 
-        # self.reward = self.calculate_rewards()
+        self.init_observation = copy.deepcopy(self.observation)
 
         if self.step_num != 0:  # don't increment episode number if resetting after init
             self.ep_no += 1
@@ -201,96 +193,67 @@ class CraftingWorldEnvRay(gym.GoalEnv):
             #     self.fig, self.ax = plt.subplots(1)
             # else:
             #     plt.clf()
-            self.fig, self.ax = plt.subplots(1)
+            self.fig = plt.figure()
+            self.ax1 = self.fig.add_subplot(1, 2, 1)
+            self.ax2 = self.fig.add_subplot(1, 2, 2)
             self.ims = []
-            self.__render_gif(reward=0)
+            self.__render_gif(state_image=self.obs_image, reward=0)
 
         return self.observation
 
-    def __object_list_to_state(self, object_dictionary, agent_pos):
-        """
-        produces a obs with one of each object
-        :return obs: a sample obs
-        :return agent_position: position of the agent within the obs
-        """
-        state = np.zeros(self.observation_vector_space.spaces['observation'].shape, dtype=int)
-        for object_type, list_of_positions in object_dictionary.items():
-            object_val = OBJECTS.index(object_type)
-            for coordinate in list_of_positions:
-                state[coordinate[0], coordinate[1]] = self.one_hot(obj=object_val, agent=False, holding=None)
-        object_at_agent_pos, _, _ = CraftingWorldEnvRay.translate_one_hot(state[agent_pos.row, agent_pos.col])
-        state[agent_pos.row, agent_pos.col] = self.one_hot(obj=object_at_agent_pos, agent=True, holding=None)
-        final_goal = self.render(state=state)
-        # return state, agent_pos
-        return final_goal
-
-    def __convert_item(self, object_dictionary, item_one, item_two=None, addl_item=None):
-        if addl_item is not None:
-            item = self.np_random.choice(object_dictionary[item_one] + object_dictionary[addl_item])
-        else:
-
-            self.np_random.permutation(object_dictionary[item_one])
-
-            item = object_dictionary[item_one][0]
-        object_dictionary[item_one].remove(item)
-        if item_two is not None:
-            object_dictionary[item_two].append(item)
-        return object_dictionary
-
-
     def imagine_obs(self):
-        init_objects = {obj: self.get_objects(code, self.init_observation_vector['observation']) for code, obj in
-                        enumerate(OBJECTS)}
-        agent_pos = self.agent_pos
-        final_objects = copy.deepcopy(init_objects)
+        # OBJECTS = ['sticks', 'axe', 'hammer', 'rock', 'tree', 'bread', 'house', 'wheat']
+        # TASK_LIST = ['MakeBread', 'EatBread', 'BuildHouse', 'ChopTree', 'ChopRock', 'GoToHouse', 'MoveAxe',
+        # 'MoveHammer',
+        # 'MoveSticks']
+        final_state = copy.deepcopy(self.INIT_OBS_VECTOR)
+        if self.desired_goal_vector[0][0] == 1:  # MakeBread
+            wheat_loc = np.where(final_state[:,:,7] == 1)
+            final_state[wheat_loc[0][0], wheat_loc[1][0], 7] = 0
+            final_state[wheat_loc[0][0], wheat_loc[1][0], 5] = 1
+        if self.desired_goal_vector[0][1] == 1:  # EatBread
+            bread_loc = np.where(final_state[:,:,5] == 1)
+            which_bread = self.np_random.randint(len(bread_loc[0]))
+            final_state[bread_loc[0][which_bread],bread_loc[1][which_bread],5] = 0
+        if self.desired_goal_vector[0][3] == 1:  # ChopTree
+            tree_loc = np.where(final_state[:,:,4] == 1)
+            final_state[tree_loc[0][0], tree_loc[1][0], 4] = 0
+            final_state[tree_loc[0][0], tree_loc[1][0], 0] = 1
+        if self.desired_goal_vector[0][8] == 1:  # MoveSticks
+            stick_loc = np.where(final_state[:,:,0] == 1)
+            which_stick = self.np_random.randint(len(stick_loc[0]))
+            unoccupied_spaces = np.where(np.sum(final_state[:,:,:9],axis=2)==0)
+            which_spot = self.np_random.randint(len(unoccupied_spaces[0]))
+            final_state[stick_loc[0][which_stick], stick_loc[1][which_stick], 0] = 0
+            final_state[unoccupied_spaces[0][which_spot], unoccupied_spaces[1][which_spot], 0] = 1
+        if self.desired_goal_vector[0][2] == 1:  # BuildHouse
+            stick_loc = np.where(final_state[:,:,0] == 1)
+            which_stick = self.np_random.randint(len(stick_loc[0]))
+            final_state[stick_loc[0][which_stick], stick_loc[1][which_stick], 0] = 0
+            final_state[stick_loc[0][which_stick], stick_loc[1][which_stick], 6] = 1
+        if self.desired_goal_vector[0][4] == 1:  # ChopRock
+            rock_loc = np.where(final_state[:,:,3] == 1)
+            final_state[rock_loc[0][0], rock_loc[1][0], 3] = 0
+        if self.desired_goal_vector[0][5] == 1:  # GoToHouse
+            house_loc = np.where(final_state[:,:,6] == 1)
+            which_house = self.np_random.randint(len(house_loc[0]))
+            final_state[house_loc[0][which_house], house_loc[1][which_house], 8:] = final_state[self.agent_pos.row,
+                                                                                    self.agent_pos.col, 8:]
+            final_state[self.agent_pos.row,self.agent_pos.col,8:]= 0
+        if self.desired_goal_vector[0][6] == 1:  # MoveAxe
+            axe_loc = np.where(final_state[:,:,1] == 1)
+            unoccupied_spaces = np.where(np.sum(final_state[:,:,:8],axis=2)==0)
+            which_spot = self.np_random.randint(len(unoccupied_spaces[0]))
+            final_state[axe_loc[0][0], axe_loc[1][0], 1] = 0
+            final_state[unoccupied_spaces[0][which_spot], unoccupied_spaces[1][which_spot], 1] = 1
+        if self.desired_goal_vector[0][7] == 1:  # MoveHammer
+            hammer_loc = np.where(final_state[:,:,2] == 1)
+            unoccupied_spaces = np.where(np.sum(final_state[:,:,:8],axis=2)==0)
+            which_spot = self.np_random.randint(len(unoccupied_spaces[0]))
+            final_state[hammer_loc[0][0], hammer_loc[1][0], 2] = 0
+            final_state[unoccupied_spaces[0][which_spot], unoccupied_spaces[1][which_spot], 2] = 1
 
-        tasks = {self.task_list[idx]: value for idx, value in enumerate(self.desired_goal_vector[0])}
-        for key, value in tasks.items():
-            if value == 1:
-                if key == 'MakeBread':
-                    final_objects = self.__convert_item(final_objects, 'wheat', 'bread')
-                if key == 'EatBread':
-                    final_objects = self.__convert_item(final_objects, 'bread')
-                if key == 'ChopTree':
-                    final_objects = self.__convert_item(final_objects, 'tree', 'sticks')
-                if key == 'ChopRock':
-                    final_objects = self.__convert_item(final_objects, 'rock')
-
-        occupied_spaces = []
-        for i in final_objects.values():
-            occupied_spaces += i
-
-        moving_tasks = {'MoveAxe': 'axe', 'MoveHammer': 'hammer', 'MoveSticks': 'sticks'}
-        for key, value in moving_tasks.items():
-            if key in tasks:
-                if tasks[key] == 1:
-                    current_location = self.np_random.choice(final_objects[value])
-                    occupied = True
-                    while occupied:
-                        new_location = [self.np_random.randint(0, STATE_W - 1), self.np_random.randint(0, STATE_H - 1)]
-                        if new_location not in occupied_spaces:
-                            final_objects[value].remove(current_location)
-                            occupied_spaces.remove(current_location)
-                            final_objects[value].append(new_location)
-                            occupied_spaces.append(new_location)
-                            break
-
-        for key, value in tasks.items():
-            if value == 1:
-                if key == 'BuildHouse':
-                    final_objects = self.__convert_item(final_objects, 'sticks', 'house')
-
-                if key == 'GoToHouse':
-                    new_agent_pos = self.np_random.choice(final_objects['house'])
-                    agent_pos = coord(new_agent_pos[0], new_agent_pos[1],
-                                      STATE_W - 1, STATE_H - 1)
-
-        # self.__object_list_to_state(final_objects, agent_pos)
-
-        # self.__object_list_to_state(final_objects, agent_pos)
-
-        # return final_objects, agent_pos
-        return self.__object_list_to_state(final_objects, agent_pos)
+        return self.render(final_state)
 
     def step(self, action):
         """
@@ -302,60 +265,63 @@ class CraftingWorldEnvRay(gym.GoalEnv):
         action_value = self.ACTIONS[action]
         self.step_num += 1
 
-        # pull information from agent's current location
-        current_cell = self.obs_one_hot[self.agent_pos.row, self.agent_pos.col]
-        object_at_current_pos, _, what_agent_is_holding = CraftingWorldEnvRay.translate_one_hot(current_cell)
-
         # Execute one time step within the environment
+        changed_state = True
         if action_value == 'pickup':
-            if object_at_current_pos is None:
-                pass  # nothing to pick up
+            if np.sum(self.obs_one_hot[self.agent_pos.row,self.agent_pos.col,:3])==0:
+                # print('nothing to pick up')
+                changed_state = False
+            elif np.sum(self.obs_one_hot[self.agent_pos.row,self.agent_pos.col,9:])!=0:
+                # print('already holding something')
+                changed_state = False
             else:
-                if what_agent_is_holding is not None:
-                    pass  # print('already holding something')
-                elif object_at_current_pos not in [0, 1, 2]:
-                    pass  # print('can\'t pick up this object')
-                else:
-                    # print('picked up', CraftingWorldEnv.translate_state_code(obj_code))
-                    self.obs_one_hot[self.agent_pos.row, self.agent_pos.col] = self.one_hot(agent=True,
-                                                                                            holding=object_at_current_pos)
+                # print('picked up', CraftingWorldEnv.translate_state_code(obj_code))
+                old_obs_one_hot = copy.deepcopy(self.obs_one_hot)
+                self.obs_one_hot[self.agent_pos.row, self.agent_pos.col,9:] = self.obs_one_hot[self.agent_pos.row, self.agent_pos.col,:3]
+                self.obs_one_hot[self.agent_pos.row, self.agent_pos.col,:3] = 0
 
         elif action_value == 'drop':
-            if what_agent_is_holding is None:
-                pass  # nothing to drop
+            if np.sum(self.obs_one_hot[self.agent_pos.row,self.agent_pos.col,9:])==0:
+                changed_state = False  # nothing to drop
+            elif np.sum(self.obs_one_hot[self.agent_pos.row,self.agent_pos.col,:8])!=0:
+                changed_state = False  # print('can only drop items on an empty spot')
             else:
-                if object_at_current_pos is not None:
-                    pass  # print('can only drop items on an empty spot')
-                else:
-                    # print('dropped', CraftingWorldEnv.translate_state_code(holding_code+1))
-                    self.obs_one_hot[self.agent_pos.row, self.agent_pos.col] = self.one_hot(obj=what_agent_is_holding,
-                                                                                            agent=True)
+                # print('dropped', CraftingWorldEnv.translate_state_code(holding_code+1))
+                old_obs_one_hot = copy.deepcopy(self.obs_one_hot)
+                self.obs_one_hot[self.agent_pos.row, self.agent_pos.col, :3] = self.obs_one_hot[self.agent_pos.row,
+                                                                               self.agent_pos.col, 9:]
+                self.obs_one_hot[self.agent_pos.row, self.agent_pos.col, 9:] = 0
 
         else:
-            self.__move_agent(action_value)
+            changed_state, old_obs_one_hot = self.__move_agent(action_value)
 
-        # task_success = self.eval_tasks()
-        self.achieved_goal_vector = self.eval_tasks()
-        self.observation_vector = {'observation': self.obs_one_hot, 'desired_goal': self.desired_goal_vector,
-                                   'achieved_goal': self.achieved_goal_vector, 'init_observation': self.INIT_OBS_VECTOR}
-        self.observation = {'observation': self.render(self.obs_one_hot), 'desired_goal': self.desired_goal,
-                            'achieved_goal': self.render(self.obs_one_hot), 'init_observation': self.INIT_OBS}
+        if changed_state == True:
+            # only need to re-evaluate task success and re-render state if the state has changed
+            self.achieved_goal_vector = self.eval_tasks()
+            self.observation_vector = {'observation': self.obs_one_hot, 'desired_goal': self.desired_goal_vector,
+                                       'achieved_goal': self.achieved_goal_vector,
+                                       'init_observation': self.INIT_OBS_VECTOR}
+            self.render_edit(old_obs_one_hot)
+            self.observation = {'observation': self.obs_image, 'desired_goal': self.desired_goal,
+                                'achieved_goal': self.obs_image, 'init_observation': self.INIT_OBS}
+            reward = self.compute_reward(self.achieved_goal_vector, self.desired_goal_vector, None)
+        else:
+            reward = -1
+
         observation = self.observation
-        # self.reward = self.calculate_rewards()
-        reward = self.compute_reward(self.achieved_goal_vector, self.desired_goal_vector, None)
-        # reward_lim = 0 if self.pos_rewards is False else np.sum(self.desired_goal_vector)
+
         done = True if self.step_num >= MAX_STEPS or reward == 1 else False
 
         # render if required
         if self.store_gif is True:
             if type(action_value) == coord:
-                self.__render_gif(action_value.name, reward)
+                self.__render_gif(state_image=self.obs_image, action_label=action_value.name, reward=reward)
             else:
-                self.__render_gif(action_value, reward)
+                self.__render_gif(state_image=self.obs_image, action_label=action_value, reward=reward)
 
         return observation, reward, done, {"task_success": self.achieved_goal_vector,
-                                                          "desired_goal": self.desired_goal_vector,
-                                                          "achieved_goal": self.achieved_goal_vector}
+                                           "desired_goal": self.desired_goal_vector,
+                                           "achieved_goal": self.achieved_goal_vector}
 
     def __move_agent(self, action):
         """
@@ -373,50 +339,46 @@ class CraftingWorldEnvRay(gym.GoalEnv):
         new_pos = self.agent_pos + action
 
         if new_pos == self.agent_pos:  # agent is at an edge coordinate, so can't move in that direction
-            return
+            return False, None
 
-        new_pos_encoding = self.obs_one_hot[new_pos.row, new_pos.col]
-        object_at_new_pos, _, _ = CraftingWorldEnvRay.translate_one_hot(new_pos_encoding)
+        new_pos_encoding = self.obs_one_hot[new_pos.t()]
 
-        current_pos_encoding = self.obs_one_hot[self.agent_pos.row, self.agent_pos.col]
-        object_at_current_pos, _, what_agent_is_holding = CraftingWorldEnvRay.translate_one_hot(current_pos_encoding)
-
-        if object_at_new_pos == 3:  # rock in new position
-            if what_agent_is_holding != 2:  # agent doesn't have hammer
-                # print('can\'t move, rock in way')
-                return
-            else:  # agent does have hammer
-                object_at_new_pos = None  # remove rock
-
-        elif object_at_new_pos == 4:  # tree in new position
-            if what_agent_is_holding != 1:  # agent not holding axe
-                # print('can\'t move, tree in way')
-                return
-            else:  # agent does have axe
-                object_at_new_pos = 0  # turn tree into sticks
-
-        elif object_at_new_pos == 0:  # sticks in new position
-            if what_agent_is_holding == 2:  # agent has hammer
-                object_at_new_pos = 6  # turn sticks into house
-
-        elif object_at_new_pos == 7:  # wheat in new position
-            if what_agent_is_holding == 1:  # agent has axe
-                object_at_new_pos = 5  # turn wheat into bread
-
-        elif object_at_new_pos == 5:  # bread in new position
-            # print('removed bread')
-            object_at_new_pos = None
-
-        # update contents of new position
-        self.obs_one_hot[new_pos.row, new_pos.col] = self.one_hot(obj=object_at_new_pos,
-                                                                  agent=True, holding=what_agent_is_holding)
-
-        # update contents of old position
-        self.obs_one_hot[self.agent_pos.row, self.agent_pos.col] = self.one_hot(obj=object_at_current_pos, agent=False,
-                                                                                holding=None)
-
-        # update agent's location
+        current_pos_encoding = self.obs_one_hot[self.agent_pos.t()]
+        cant_move_bool = new_pos_encoding[3] * (1 - current_pos_encoding[11]) + new_pos_encoding[4] * (
+                    1 - current_pos_encoding[10])
+        if cant_move_bool == 1:
+            # print("\ncan't move, either tree or rock w/o appropriate tool", self.step_num)
+            return False, None
+        old_obs_one_hot = copy.deepcopy(self.obs_one_hot)
+        self.obs_one_hot[new_pos.row, new_pos.col, 8:] = current_pos_encoding[8:]
+        self.obs_one_hot[self.agent_pos.row, self.agent_pos.col, 8:] = 0
         self.agent_pos = new_pos
+        new_pos_encoding = self.obs_one_hot[self.agent_pos.t()]
+        current_obj = np.where(new_pos_encoding[:8] == 1)[0]
+        if len(current_obj) == 0:
+            # print("no objects on new square, return")
+            return True, old_obs_one_hot
+        if current_obj[0] in [1,2,6]:
+            # print("on axe,hammer, or house, no changes needed, return")
+            return True, old_obs_one_hot
+        elif current_obj[0] in [3,4,5]:
+            # print("moved over bread, tree or rock")
+            self.obs_one_hot[self.agent_pos.row, self.agent_pos.col, current_obj[0]] = 0
+            if current_obj[0] == 4:
+                # print("for tree, put sticks there")
+                self.obs_one_hot[self.agent_pos.row, self.agent_pos.col, 0] = 1
+        elif current_obj[0] == 0:
+            # print("moved over sticks:")
+            self.obs_one_hot[self.agent_pos.row,self.agent_pos.col,0] *= (1-self.obs_one_hot[self.agent_pos.row,self.agent_pos.col,11])
+            self.obs_one_hot[self.agent_pos.row, self.agent_pos.col, 6] = self.obs_one_hot[self.agent_pos.row, self.agent_pos.col, 11]
+        elif current_obj[0] == 7:
+            # print("moved over wheat:")
+            self.obs_one_hot[self.agent_pos.row, self.agent_pos.col, 7] *= (
+                        1 - self.obs_one_hot[self.agent_pos.row, self.agent_pos.col, 10])
+            self.obs_one_hot[self.agent_pos.row, self.agent_pos.col, 5] = self.obs_one_hot[
+                self.agent_pos.row, self.agent_pos.col, 10]
+
+        return True, old_obs_one_hot
 
     def render(self, state=None, mode='Non', tile_size=4):
         """
@@ -430,21 +392,63 @@ class CraftingWorldEnvRay(gym.GoalEnv):
             state = self.obs_one_hot
 
         height, width = state.shape[0], state.shape[1]
-        objects, agents, holding = np.split(state,[len(OBJECTS),len(OBJECTS) + 1],axis=2)
-        objects_n = np.concatenate((np.zeros((height,width,1),dtype=int),objects),axis=2)
+        # print(np.zeros((height,width)))
+        # state = np.concatenate((np.zeros((height,width,1),dtype=int),state),axis=2)
+        # print(state.shape)
+        # print(state.all(axis=2).nonzero())
+        objects, agents, holding = np.split(state, [len(OBJECTS), len(OBJECTS) + 1], axis=2)
+        objects_n = np.concatenate((np.zeros((height, width, 1), dtype=int), objects), axis=2)
         holding = np.concatenate((np.zeros((height, width, 1), dtype=int), holding), axis=2)
-
+        # print(objects.shape, agents.squeeze(axis=2).shape,holding.shape,"\n")
+        # new_state = np.argmax(state, axis=2)
         new_state_h = np.argmax(holding, axis=2)
+        # print(new_state_o)
 
-        img = np.tensordot(objects_n, COLORS_N_M,axes=1)
-        img = np.repeat(img,4,axis=0)
-        img = np.repeat(img,4,axis=1)
-        a_x,a_y = self.agent_pos.t()
-        img[a_x*4+1:a_x*4+3,a_y*4+1:a_y*4+3,:] = 255
+        # objects_n = np.expand_dims(objects, axis=3)
+        # objects_n = np.repeat(objects_n, 3, axis=3)
+        # COLORS_N_M = np.expand_dims(COLORS_N_M,axis=0)
+        # COLORS_N_M = np.expand_dims(COLORS_N_M, axis=0)
+
+        # print(COLORS_N_M.shape,objects_n.shape)
+        # print(objects_n)
+        img = np.tensordot(objects_n, COLORS_N_M, axes=1)
+        img = np.repeat(img, 4, axis=0)
+        img = np.repeat(img, 4, axis=1)
+        # print(self.agent_pos)
+        a_x, a_y = self.agent_pos.t()
+        # print(a_x*4+1,a_y*4+1)
+        img[a_x * 4 + 1:a_x * 4 + 3, a_y * 4 + 1:a_y * 4 + 3, :] = 255
         holding = np.max(new_state_h)
-        if holding!=0:
+        if holding != 0:
             img[a_x * 4 + 2:a_x * 4 + 3, a_y * 4 + 1:a_y * 4 + 3] = COLORS_N[holding]
-
+        # print(img.shape)
+        # if np.max(new_state_h!=0):
+        #     # test = np.full_like()
+        #     COLORS_N_M = np.asarray(COLORS_N)
+        #     # COLORS_N_M = np.expand_dims(COLORS_N_M,axis=0)
+        #     # COLORS_N_M = np.expand_dims(COLORS_N_M, axis=0)
+        #     print(COLORS_N_M.shape)
+        #     print(objects.shape)
+        #     objects_n = np.expand_dims(objects,axis=3)
+        #     objects_n = np.repeat(objects_n,3,axis=3)
+        #     # print(objects_n)
+        #     print(objects_n.shape)
+        #     print(np.tensordot(objects_n,COLORS_N_M).shape)
+        #     print("\n",new_state_o)
+        #     # new_tile = np.repeat(new_state_o,4,axis=0)
+        #     # new_tile = np.repeat(new_tile,4,axis=1)
+        #     # print(new_tile)
+        #     print(new_state_a)
+        #     print(new_state_h)
+        #     print(np.max(new_state_h))
+        # print(state.shape, new_state)
+        # print(new_state_o)
+        # print(agents.shape)
+        # print(new_state_h)
+        # Compute the total grid size
+        # width_px, height_px = width * tile_size, height * tile_size
+        # img = np.zeros(shape=(height_px, width_px, 3), dtype=np.uint8)
+        #
         if mode == 'human':
             fig2, ax2 = plt.subplots(1)
             ax2.imshow(img)
@@ -452,10 +456,42 @@ class CraftingWorldEnvRay(gym.GoalEnv):
 
         return img
 
-    def __render_gif(self, action_label=None, reward=404):
-        img2 = self.render(mode='Non')
-        im = plt.imshow(img2, animated=True)
+    def render_edit(self, old_obs_one_hot):
+        changes = self.obs_one_hot - old_obs_one_hot
+        vals_to_empty = list(set([(x, y) for x, y, z in np.argwhere(changes != 0)]))
+        # print(vals_to_empty)
+        for x, y in vals_to_empty:
+            # if i!=0:
+            #     print(i,vals_to_empty)
+            # self.obs_image[x * 4:x * 4 + 4,
+            #                     y*4:y*4+4,
+            #                     :] = 0
+            # print(self.obs_one_hot.shape)
+            # print('a',vals_to_empty[i][0])
+            # print('b',self.obs_one_hot[vals_to_empty[i][0],vals_to_empty[i][1],9:].shape)
+            # print(self.obs_one_hot[vals_to_empty[i][0],vals_to_empty[i][1],:8])
+            # print(COLORS_M.shape)
+            new_color = np.dot(self.obs_one_hot[x, y, :8], COLORS_M)
+            self.obs_image[x * 4:x * 4 + 4, y * 4:y * 4 + 4] = new_color
+            # print(np.dot(self.obs_one_hot[x,y,:8],COLORS_M))
+            if (x, y) == self.agent_pos.t():
+                # print("agent is here!")
+                self.obs_image[x * 4 + 1:x * 4 + 3, y * 4 + 1:y * 4 + 3, :] = 255
+                holding_color = np.dot(self.obs_one_hot[x, y, 9:], COLORS_H)
+                self.obs_image[x * 4 + 2:x * 4 + 3, y * 4 + 1:y * 4 + 3] -= holding_color
 
+        # for i in range(len(vals_to_empty[0])):
+        #     print(i,vals_to_empty)
+        #     self.obs_image[vals_to_empty[0][i]*4:vals_to_empty[0][i]*4+4,
+        #                     vals_to_empty[1][i]*4:vals_to_empty[1][i]*4+4,
+        #                     :] = 0
+
+    def __render_gif(self, state_image=None, action_label=None, reward=404):
+
+        img2 = state_image if state_image is not None else self.render(mode='Non')
+        # im = plt.imshow(img2, animated=True)
+        im = self.ax1.imshow(img2, animated=True)
+        im2 = self.ax2.imshow(self.observation['desired_goal'])
         desired_goals = "\n".join(wrap(
             ', '.join([self.task_list[key] for key, value in enumerate(self.desired_goal_vector[0]) if value == 1]),
             50))
@@ -482,7 +518,7 @@ Desired Goals: {}""".format(self.ep_no, self.step_num, action_label, desired_goa
         # put those patched as legend-handles into the legend
         plt.legend(handles=patches, bbox_to_anchor=(1.025, 1), loc=2, borderaxespad=0.)
 
-        self.ims.append([im, ttl, txt])
+        self.ims.append([im, im2, ttl, txt])
 
     def sample_state(self):
         """
@@ -505,113 +541,57 @@ Desired Goals: {}""".format(self.ep_no, self.step_num, action_label, desired_goa
         return state, agent_position
 
     def eval_tasks(self):
-        # print(self.obs_one_hot.shape, self.INIT_OBS_VECTOR.shape)
+        quantities = np.sum(self.obs_one_hot, axis=(0, 1))
+        # OBJECTS = ['sticks', 'axe', 'hammer', 'rock', 'tree', 'bread', 'house', 'wheat']
+        make_bread = quantities[7] < 1
+        eat_bread = quantities[7] + quantities[5] < 2
+        build_house = quantities[6] > 1
+        chop_tree = quantities[4] < 1
+        chop_rock = quantities[3] < 1
 
-        objects, _, holding = np.split(self.obs_one_hot, [len(OBJECTS), len(OBJECTS) + 1], axis=2)
-        objects = np.concatenate((np.zeros((STATE_H, STATE_W, 1), dtype=int), objects), axis=2)
-        objects = np.argmax(objects,axis=2)
-        holding = np.concatenate((np.zeros((STATE_H, STATE_W, 1), dtype=int), holding), axis=2)
-        holding = np.argmax(holding,axis=2)
-        init_objects, init_agent, init_holding = np.split(self.INIT_OBS_VECTOR, [len(OBJECTS), len(OBJECTS) + 1], axis=2)
-        init_objects = np.concatenate((np.zeros((STATE_H, STATE_W, 1), dtype=int), init_objects), axis=2)
-        init_objects = np.argmax(init_objects,axis=2)
+        # rolled = np.rollaxis(self.obs_one_hot,2)
+        # print(self.obs_one_hot.shape,rolled.shape)
+        # print(np.argwhere(rolled[6]==1))
+        # print(np.argwhere(self.obs_one_hot[:,:,6]==1))
+        go_to_house = True if self.obs_one_hot[self.agent_pos.row, self.agent_pos.col, 6] == 1 else False
 
-        f_obj_count = np.asarray([np.count_nonzero(objects==i) for i in range(1,9)])
-        i_obj_count = np.asarray([np.count_nonzero(init_objects==i) for i in range(1,9)])
-        delta_obj = i_obj_count-f_obj_count
-
-        make_bread = delta_obj[7] > 0
-        eat_bread = delta_obj[7]+delta_obj[5] > 0
-        build_house = delta_obj[6] < 0
-        chop_tree = delta_obj[4] > 0
-        chop_rock = delta_obj[3] > 0
-
-        house_locations = np.argwhere(objects==7)
-        go_to_house = any((self.agent_pos.t() == x).all() for x in house_locations)
-
-        initial_stick_locations = np.argwhere(init_objects==1)
-        final_stick_locations = np.argwhere(objects==1)
-        if not any((initial_stick_locations == x).all() for x in final_stick_locations) or len(final_stick_locations)==0:
-            if objects[initial_stick_locations[0][0],initial_stick_locations[0][1]] == 7:
-                # there is a house where the sticks were, this doesnt count as moving!
-                move_sticks = False
-            else:
-                # if the agent is in OG stick spot while holding sticks, false, else sticks have been moved
-                move_sticks = not (any((self.agent_pos.t() == x).all() for x in initial_stick_locations) and np.max(holding) == 1)
+        original_axe_loc = np.where(self.INIT_OBS_VECTOR[:, :, 1] == 1)
+        if quantities[1] == 1:
+            move_axe = True if self.obs_one_hot[original_axe_loc[0][0], original_axe_loc[1][0], 1] == 0 else False
         else:
-            if not chop_tree:
-                move_sticks = False
-            else:
-                tree_init_spot = np.argwhere(init_objects==5)
-                tree_new_object = objects[tree_init_spot[0][0],tree_init_spot[0][1]]
-                if tree_new_object == 1 or tree_new_object == 7:
-                    # if sticks are still where the tree was or were converted to house on the spot, it doesnt count
-                    move_sticks = False
-                else:
-                    # if the agent is in OG tree spot while holding sticks, false, else sticks have been moved
-                    move_sticks = not (any((self.agent_pos.t() == x).all() for x in tree_init_spot) and np.max(
-                        holding) == 1)
+            move_axe = True if (original_axe_loc[0][0], original_axe_loc[1][0]) != self.agent_pos.t() else False
 
-        if delta_obj[1] == 0:
-            move_axe = not np.array_equal(np.argwhere(objects==2),np.argwhere(init_objects==2))
+        original_hammer_loc = np.where(self.INIT_OBS_VECTOR[:, :, 2] == 1)
+        if quantities[2] == 1:
+            move_hammer = True if self.obs_one_hot[
+                                      original_hammer_loc[0][0], original_hammer_loc[1][0], 2] == 0 else False
         else:
-            move_axe = not np.array_equal(np.argwhere(init_objects==2),np.asarray([self.agent_pos.t()]))
+            move_hammer = True if (
+                                  original_hammer_loc[0][0], original_hammer_loc[1][0]) != self.agent_pos.t() else False
 
-        if delta_obj[2] == 0:
-            move_hammer = not np.array_equal(np.argwhere(objects==3),np.argwhere(init_objects==3))
+        og_stick_loc = np.where(self.INIT_OBS_VECTOR[:, :, 0] == 1)
+        if self.obs_one_hot[og_stick_loc[0][0], og_stick_loc[1][0], 0] == 0:  # if no stick in the og spot
+            move_sticks = False if (self.obs_one_hot[og_stick_loc[0][0], og_stick_loc[1][0], 6] == 1 or
+                                    self.obs_one_hot[og_stick_loc[0][0], og_stick_loc[1][0], 9] == 1) else True
+            # false if house in that spot or agent holding sticks in that spot, else true
+        elif chop_tree == False:
+            move_sticks = False
         else:
-            move_hammer = not np.array_equal(np.argwhere(init_objects==3),np.asarray([self.agent_pos.t()]))
-
-        task_success = np.asarray([[make_bread, eat_bread, build_house, chop_tree, chop_rock, go_to_house, move_axe, move_hammer,
-             move_sticks]],dtype=int)
+            og_tree_loc = np.where(self.INIT_OBS_VECTOR[:, :, 4] == 1)
+            move_sticks = False if (self.obs_one_hot[og_tree_loc[0][0], og_tree_loc[1][0], 0] == 1 or
+                                    self.obs_one_hot[og_tree_loc[0][0], og_tree_loc[1][0], 6] == 1 or
+                                    self.obs_one_hot[og_tree_loc[0][0], og_tree_loc[1][0], 9] == 1) else True
+            # false if house in that spot or tree or agent holding sticks
+        task_success = np.asarray(
+            [[make_bread, eat_bread, build_house, chop_tree, chop_rock, go_to_house, move_axe, move_hammer,
+              move_sticks]], dtype=int)
         return task_success
 
-    def compute_reward(self, achieved_goal, desired_goal, info):
-        if np.sum(np.square(desired_goal - achieved_goal)) == 0:
+    def compute_reward(self, desired_goal=None, achieved_goal=None, info=None):
+        if np.array_equal(desired_goal,achieved_goal):
             return 1
         else:
             return -1
-
-    def calculate_rewards(self, desired_goal=None, achieved_goal=None, initial_goal=None):
-        if self.binary_rewards is True:
-            if desired_goal is None:
-                desired_goal = self.observation_vector['desired_goal']
-            if achieved_goal is None:
-                achieved_goal = self.observation_vector['achieved_goal']
-            if np.sum(np.square(desired_goal - achieved_goal)) == 0:
-                return 1
-            else:
-                return -1
-        if desired_goal is None:
-            desired_goal = self.observation['desired_goal']
-        if achieved_goal is None:
-            achieved_goal = self.observation['achieved_goal']
-        if initial_goal is None:
-            initial_goal = self.init_observation['achieved_goal']
-        error = np.sqrt(np.sum(np.square(desired_goal - achieved_goal)))
-        if self.pos_rewards is True:
-            initial_error = np.sqrt(np.sum(np.square(desired_goal - initial_goal)))
-            return -error / initial_error
-        return -error
-
-    def get_objects(self, code, state):
-        """
-        returns the locations for a particular type object within a obs
-
-        :param code: the code of the object, which is the index of the object within the one-hot encoding
-        :param state: the obs to search in
-        :return: a list of locations where the object is $[[i_1,j_1],[i_2,j_2],...,[i_n,j_n]]$
-        """
-        code_variants = [code]
-        if code < 3:
-            code_variants.append(code + 9)
-        locations = []
-        for i in range(STATE_W):
-            for j in range(STATE_H):
-                for c in code_variants:
-                    if state[i, j, c] == 1:
-                        locations += [[i, j]]
-        return locations
 
     def allow_gif_storage(self, store_gif=True):
         """
@@ -627,7 +607,8 @@ Desired Goals: {}""".format(self.ep_no, self.step_num, action_label, desired_goa
             os.makedirs('renders/env{}'.format(self.env_id), exist_ok=False)
             self.fig, self.ax = plt.subplots(1)
             self.ims = []  # storage of step renderings for gif
-            self.__render_gif()
+            if self.render_flipping is True:
+                self.__render_gif()
 
     def one_hot(self, obj=None, agent=False, holding=None):
         row = [0 for _ in range(self.observation_vector_space.spaces['observation'].shape[2])]

@@ -27,9 +27,13 @@ OBJECT_PROBS = [x / sum(OBJECT_RATIOS) for x in OBJECT_RATIOS]
 
 COLORS = [(110, 69, 39), (255, 105, 180), (100, 100, 200), (100, 100, 100), (0, 128, 0), (205, 133, 63), (197, 91, 97),
           (240, 230, 140)]
-COLORS_N = [(0,0,0),(110, 69, 39), (255, 105, 180), (100, 100, 200), (100, 100, 100), (0, 128, 0), (205, 133, 63), (197, 91, 97),
-          (240, 230, 140)]
+COLORS_N = [(0, 0, 0), (110, 69, 39), (255, 105, 180), (100, 100, 200), (100, 100, 100), (0, 128, 0), (205, 133, 63),
+            (197, 91, 97),
+            (240, 230, 140)]
+COLORS_H = np.asarray([[145, 186, 216], [0, 150, 75], [155, 155, 55]])
+
 COLORS_N_M = np.asarray(COLORS_N)
+COLORS_M = np.asarray(COLORS)
 COLORS_rgba = [(110 / 255.0, 69 / 255.0, 39 / 255.0, .9), (255 / 255.0, 105 / 255.0, 180 / 255.0, .9),
                (100 / 255.0, 100 / 255.0, 200 / 255.0, .9), (100 / 255.0, 100 / 255.0, 100 / 255.0, .9),
                (0 / 255.0, 128 / 255.0, 0 / 255.0, .9), (205 / 255.0, 133 / 255.0, 63 / 255.0, .9),
@@ -209,31 +213,31 @@ class CraftingWorldEnvRay(gym.GoalEnv):
         final_state = self.INIT_OBS_VECTOR.copy()
         if self.desired_goal_vector[0][0] == 1:  # MakeBread
             # wheat_loc = np.unravel_index(np.flatnonzero(final_state[:,:,7] == 1),
-            # final_state[:, :, 7].shape)
-            wheat_loc = np.where(final_state[:, :, 7] == 1)
+                                         # final_state[:, :, 7].shape)
+            wheat_loc = np.where(final_state[:,:,7] == 1)
             final_state[wheat_loc[0][0], wheat_loc[1][0], 7] = 0
             final_state[wheat_loc[0][0], wheat_loc[1][0], 5] = 1
         if self.desired_goal_vector[0][1] == 1:  # EatBread
             # bread_loc = np.unravel_index(np.flatnonzero(final_state[:, :, 5] == 1),
-            # final_state[:, :, 5].shape)
-            bread_loc = np.where(final_state[:, :, 5] == 1)
+                                         # final_state[:, :, 5].shape)
+            bread_loc = np.where(final_state[:,:,5] == 1)
             which_bread = self.np_random.randint(len(bread_loc[0]))
-            final_state[bread_loc[0][which_bread], bread_loc[1][which_bread], 5] = 0
+            final_state[bread_loc[0][which_bread],bread_loc[1][which_bread],5] = 0
         if self.desired_goal_vector[0][3] == 1:  # ChopTree
             # tree_loc = np.unravel_index(np.flatnonzero(final_state[:, :, 4] == 1),
-            # final_state[:, :, 4].shape)
-            tree_loc = np.where(final_state[:, :, 4] == 1)
+                                         # final_state[:, :, 4].shape)
+            tree_loc = np.where(final_state[:,:,4] == 1)
             final_state[tree_loc[0][0], tree_loc[1][0], 4] = 0
             final_state[tree_loc[0][0], tree_loc[1][0], 0] = 1
         if self.desired_goal_vector[0][8] == 1:  # MoveSticks
             # stick_loc = np.unravel_index(np.flatnonzero(final_state[:, :, 0] == 1),
-            # (STATE_W, STATE_H))
-            stick_loc = np.where(final_state[:, :, 0] == 1)
+                                         # (STATE_W, STATE_H))
+            stick_loc = np.where(final_state[:,:,0] == 1)
             which_stick = self.np_random.randint(len(stick_loc[0]))
             # unoccupied_spaces = np.unravel_index(np.flatnonzero(np.sum(final_state[:,:,:9],axis=2)),
-            # (STATE_W,STATE_H))
+                                                 # (STATE_W,STATE_H))
             # print(np.sum(final_state[:, :, :9], axis=2).shape)
-            unoccupied_spaces = np.where(np.add.reduce(final_state[:, :, :9], axis=2) == 0)
+            unoccupied_spaces = np.where(np.add.reduce(final_state[:,:,:9],axis=2) == 0)
             # unoccupied_spaces = np.where(np.sum(final_state[:,:,:9],axis=2)==0)
             # print(np.add.reduce(final_state[:,:,:9],axis=2).shape)
             which_spot = self.np_random.randint(len(unoccupied_spaces[0]))
@@ -241,26 +245,26 @@ class CraftingWorldEnvRay(gym.GoalEnv):
             final_state[unoccupied_spaces[0][which_spot], unoccupied_spaces[1][which_spot], 0] = 1
         if self.desired_goal_vector[0][2] == 1:  # BuildHouse
             # stick_loc = np.unravel_index(np.flatnonzero(final_state[:, :, 0] == 1),
-            # (STATE_W, STATE_H))
-            stick_loc = np.where(final_state[:, :, 0] == 1)
+                                         # (STATE_W, STATE_H))
+            stick_loc = np.where(final_state[:,:,0] == 1)
             which_stick = self.np_random.randint(len(stick_loc[0]))
             final_state[stick_loc[0][which_stick], stick_loc[1][which_stick], 0] = 0
             final_state[stick_loc[0][which_stick], stick_loc[1][which_stick], 6] = 1
         if self.desired_goal_vector[0][4] == 1:  # ChopRock
             # rock_loc = np.unravel_index(np.flatnonzero(final_state[:, :, 3] == 1),  (STATE_W, STATE_H))
-            rock_loc = np.where(final_state[:, :, 3] == 1)
+            rock_loc = np.where(final_state[:,:,3] == 1)
             final_state[rock_loc[0][0], rock_loc[1][0], 3] = 0
         if self.desired_goal_vector[0][5] == 1:  # GoToHouse
             # house_loc = np.unravel_index(np.flatnonzero(final_state[:, :, 6] == 1),
             #                              (STATE_W, STATE_H))
-            house_loc = np.where(final_state[:, :, 6] == 1)
+            house_loc = np.where(final_state[:,:,6] == 1)
             which_house = self.np_random.randint(len(house_loc[0]))
             final_state[house_loc[0][which_house], house_loc[1][which_house], 8:] = final_state[self.agent_pos.row,
                                                                                     self.agent_pos.col, 8:]
-            final_state[self.agent_pos.row, self.agent_pos.col, 8:] = 0
+            final_state[self.agent_pos.row,self.agent_pos.col,8:]= 0
         if self.desired_goal_vector[0][6] == 1:  # MoveAxe
             # axe_loc = np.unravel_index(np.flatnonzero(final_state[:, :, 1] == 1),  (STATE_W, STATE_H))
-            axe_loc = np.where(final_state[:, :, 1] == 1)
+            axe_loc = np.where(final_state[:,:,1] == 1)
             # unoccupied_spaces = np.unravel_index(np.flatnonzero(np.sum(final_state[:, :, :8], axis=2)),
             #                                      (STATE_W, STATE_H))
             unoccupied_spaces = np.where(np.add.reduce(final_state[:, :, :8], axis=2) == 0)
@@ -271,9 +275,9 @@ class CraftingWorldEnvRay(gym.GoalEnv):
         if self.desired_goal_vector[0][7] == 1:  # MoveHammer
             # hammer_loc = np.unravel_index(np.flatnonzero(final_state[:, :, 2] == 1),  (STATE_W, STATE_H))
             # print(final_state[:, :, 2].shape)
-            hammer_loc = np.where(final_state[:, :, 2] == 1)
+            hammer_loc = np.where(final_state[:,:,2] == 1)
             # unoccupied_spaces = np.unravel_index(np.flatnonzero(np.sum(final_state[:, :, :8], axis=2)),
-            # (STATE_W, STATE_H))
+                                                 # (STATE_W, STATE_H))
             unoccupied_spaces = np.where(np.add.reduce(final_state[:, :, :8], axis=2) == 0)
             # unoccupied_spaces = np.where(np.sum(final_state[:,:,:8],axis=2)==0)
             which_spot = self.np_random.randint(len(unoccupied_spaces[0]))
@@ -298,25 +302,24 @@ class CraftingWorldEnvRay(gym.GoalEnv):
         if action_value == 'pickup':
             # print("a")
             changed_idxs = [self.agent_pos.t()]
-            if np.add.reduce(self.obs_one_hot[self.agent_pos.row, self.agent_pos.col, :3]) == 0:
+            if np.add.reduce(self.obs_one_hot[self.agent_pos.row,self.agent_pos.col,:3])==0:
                 # print('nothing to pick up')
                 changed_state = False
-            elif np.add.reduce(self.obs_one_hot[self.agent_pos.row, self.agent_pos.col, 9:]) != 0:
+            elif np.add.reduce(self.obs_one_hot[self.agent_pos.row,self.agent_pos.col,9:])!=0:
                 # print('already holding something')
                 changed_state = False
             else:
                 # print('picked up', CraftingWorldEnv.translate_state_code(obj_code))
                 # old_obs_one_hot = self.obs_one_hot.copy()
-                self.obs_one_hot[self.agent_pos.row, self.agent_pos.col, 9:] = self.obs_one_hot[self.agent_pos.row,
-                                                                               self.agent_pos.col, :3]
-                self.obs_one_hot[self.agent_pos.row, self.agent_pos.col, :3] = 0
+                self.obs_one_hot[self.agent_pos.row, self.agent_pos.col,9:] = self.obs_one_hot[self.agent_pos.row, self.agent_pos.col,:3]
+                self.obs_one_hot[self.agent_pos.row, self.agent_pos.col,:3] = 0
 
         elif action_value == 'drop':
             # print("b")
             changed_idxs = [self.agent_pos.t()]
-            if np.add.reduce(self.obs_one_hot[self.agent_pos.row, self.agent_pos.col, 9:]) == 0:
+            if np.add.reduce(self.obs_one_hot[self.agent_pos.row,self.agent_pos.col,9:])==0:
                 changed_state = False  # nothing to drop
-            elif np.add.reduce(self.obs_one_hot[self.agent_pos.row, self.agent_pos.col, :8]) != 0:
+            elif np.add.reduce(self.obs_one_hot[self.agent_pos.row,self.agent_pos.col,:8])!=0:
                 changed_state = False  # print('can only drop items on an empty spot')
             else:
                 # print('dropped', CraftingWorldEnv.translate_state_code(holding_code+1))
@@ -384,7 +387,7 @@ class CraftingWorldEnvRay(gym.GoalEnv):
 
         current_pos_encoding = self.obs_one_hot[self.agent_pos.t()]
         cant_move_bool = new_pos_encoding[3] * (1 - current_pos_encoding[11]) + new_pos_encoding[4] * (
-                1 - current_pos_encoding[10])
+                    1 - current_pos_encoding[10])
         if cant_move_bool == 1:
             # print("\ncan't move, either tree or rock w/o appropriate tool", self.step_num)
             return False, None, [self.agent_pos.t()]
@@ -401,11 +404,11 @@ class CraftingWorldEnvRay(gym.GoalEnv):
         current_obj = np.where(new_pos_encoding[:8] == 1)[0]
         if len(current_obj) == 0:
             # print("no objects on new square, return")
-            return True, None, [old_pos, new_pos.t()]
-        if current_obj[0] in [1, 2, 6]:
+            return True, None, [old_pos,new_pos.t()]
+        if current_obj[0] in [1,2,6]:
             # print("on axe,hammer, or house, no changes needed, return")
-            return True, old_contents_new_loc, [old_pos, new_pos.t()]
-        elif current_obj[0] in [3, 4, 5]:
+            return True, old_contents_new_loc, [old_pos,new_pos.t()]
+        elif current_obj[0] in [3,4,5]:
             # print("moved over bread, tree or rock")
             self.obs_one_hot[self.agent_pos.row, self.agent_pos.col, current_obj[0]] = 0
             if current_obj[0] == 4:
@@ -413,18 +416,16 @@ class CraftingWorldEnvRay(gym.GoalEnv):
                 self.obs_one_hot[self.agent_pos.row, self.agent_pos.col, 0] = 1
         elif current_obj[0] == 0:
             # print("moved over sticks:")
-            self.obs_one_hot[self.agent_pos.row, self.agent_pos.col, 0] *= (
-                        1 - self.obs_one_hot[self.agent_pos.row, self.agent_pos.col, 11])
-            self.obs_one_hot[self.agent_pos.row, self.agent_pos.col, 6] = self.obs_one_hot[
-                self.agent_pos.row, self.agent_pos.col, 11]
+            self.obs_one_hot[self.agent_pos.row,self.agent_pos.col,0] *= (1-self.obs_one_hot[self.agent_pos.row,self.agent_pos.col,11])
+            self.obs_one_hot[self.agent_pos.row, self.agent_pos.col, 6] = self.obs_one_hot[self.agent_pos.row, self.agent_pos.col, 11]
         elif current_obj[0] == 7:
             # print("moved over wheat:")
             self.obs_one_hot[self.agent_pos.row, self.agent_pos.col, 7] *= (
-                    1 - self.obs_one_hot[self.agent_pos.row, self.agent_pos.col, 10])
+                        1 - self.obs_one_hot[self.agent_pos.row, self.agent_pos.col, 10])
             self.obs_one_hot[self.agent_pos.row, self.agent_pos.col, 5] = self.obs_one_hot[
                 self.agent_pos.row, self.agent_pos.col, 10]
         # print(type(old_pos),type(self.agent_pos.t()))
-        return True, old_contents_new_loc, [old_pos, new_pos.t()]
+        return True, old_contents_new_loc, [old_pos,new_pos.t()]
 
     def render(self, state=None, mode='Non', tile_size=4):
         """
@@ -516,7 +517,7 @@ class CraftingWorldEnvRay(gym.GoalEnv):
         # for i in range(len(change_idxs[0])):
         #     x,y = change_idxs[0][i],change_idxs[1][i]
         # print(change_idxs)
-        for x, y in change_idxs:
+        for x,y in change_idxs:
             # print(coordinate)
             # x,y = coordinate[0],coordinate[1]
             # x, y = change_idxs[0][i], change_idxs[1][i]
@@ -585,9 +586,9 @@ Desired Goals: {}""".format(self.ep_no, self.step_num, action_label, desired_goa
         :return obs: a sample observation
         :return agent_position: position of the agent within the observation
         """
-        diag = np.diag([1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0])
-        state = np.zeros(self.observation_vector_space.spaces['observation'].shape, dtype=int)
-        state[0, :12, :] = diag
+        diag = np.diag([1,1,1,1,1,1,1,1,1,0,0,0])
+        state = np.zeros(self.observation_vector_space.spaces['observation'].shape,dtype=int)
+        state[0,:12,:]=diag
         perm = np.arange(state.shape[0])
         self.np_random.shuffle(perm)
         state = state[perm]
@@ -606,7 +607,7 @@ Desired Goals: {}""".format(self.ep_no, self.step_num, action_label, desired_goa
 
         return state, agent_position
 
-    def eval_task_edit(self, old_contents_new_loc):
+    def eval_task_edit(self,old_contents_new_loc):
         """
         changes to the task success will only occur on the agent's location, so we don't need to iterate through
         the whole state space with eval_task after it has already been processed once
@@ -631,7 +632,7 @@ Desired Goals: {}""".format(self.ep_no, self.step_num, action_label, desired_goa
         self.achieved_goal_vector[0][5] = 1 if new_objects[0] == 6 else 0  # go_to_house
 
         if new_objects[-1] == 8:
-            pass  # agent not holding anything, so don't have to check the move_object tasks
+            pass # agent not holding anything, so don't have to check the move_object tasks
         elif new_objects[-1] == 9:
             # agent holding sticks
             initial_contents = np.nonzero(self.INIT_OBS_VECTOR[self.agent_pos.t()])[0]
@@ -639,12 +640,12 @@ Desired Goals: {}""".format(self.ep_no, self.step_num, action_label, desired_goa
                 self.achieved_goal_vector[0][8] = 1
             elif initial_contents[0] == 0:
                 # this is a stick initial location, so sticks haven't been moved
-                self.achieved_goal_vector[0][8] = 0
-            elif initial_contents[0] == 4 and self.achieved_goal_vector[0][3] == 1:
+                self.achieved_goal_vector[0][8]=0
+            elif initial_contents[0] == 4 and self.achieved_goal_vector[0][3]==1:
                 # this is a tree initial spot, and tree was turned into sticks, so sticks haven't been moved
-                self.achieved_goal_vector[0][8] = 0
+                self.achieved_goal_vector[0][8]=0
             else:
-                self.achieved_goal_vector[0][8] = 1
+                self.achieved_goal_vector[0][8]=1
         elif new_objects[-1] == 10:
             # agent holding axe
             if old_object == 7:
@@ -707,7 +708,9 @@ Desired Goals: {}""".format(self.ep_no, self.step_num, action_label, desired_goa
         #             print("move_hammer",move_hammer, self.INIT_OBS_VECTOR[self.agent_pos.row,self.agent_pos.col,11])
         #     # if self.obs_one_hot[]
 
-    def short_circuit_check(self, a, b, n):  # this fn is basically just np.array_equals, but so much faster
+
+
+    def short_circuit_check(self, a, b, n):  #this fn is basically just np.array_equals, but so much faster
         L = len(a) // n
         for i in range(n):
             j = i * L
@@ -716,7 +719,7 @@ Desired Goals: {}""".format(self.ep_no, self.step_num, action_label, desired_goa
         return True
 
     def compute_reward(self, achieved_goal=None, desired_goal=None, info=None):
-        if self.short_circuit_check(desired_goal, achieved_goal, 4):
+        if self.short_circuit_check(desired_goal,achieved_goal,4):
             return 1
         else:
             return -1
@@ -754,3 +757,4 @@ Desired Goals: {}""".format(self.ep_no, self.step_num, action_label, desired_goa
         holding = np.argmax(one_hot_row[len(OBJECTS) + 1:]) if one_hot_row[len(OBJECTS) + 1:].any() == 1 else None
         agent = one_hot_row[len(OBJECTS)]
         return object_at_location, agent, holding
+

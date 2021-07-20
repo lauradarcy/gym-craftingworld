@@ -3,12 +3,10 @@ from gym import spaces
 from gym.utils import seeding
 # import copy
 import numpy as np
-# from numpy.core._multiarray_umath import ndarray
 
-# from envs.custom_render import *
+
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
-# import random
 from gym_craftingworld.envs.coordinates import coord
 import matplotlib.patches as mpatches
 import os

@@ -587,17 +587,12 @@ Desired Goals: {}""".format(self.ep_no, self.step_num, action_label, desired_goa
         diag = np.diag([1,1,1,1,1,1,1,1,1,0,0,0])
         state = np.zeros(self.observation_vector_space.spaces['observation'].shape,dtype=int)
         state[0,:12,:]=diag
+        state=np.reshape(state,(-1,1,12))
         perm = np.arange(state.shape[0])
         self.np_random.shuffle(perm)
         state = state[perm]
-        # objects = [_ for _ in range(1, 10)]
-        # objects = [self.one_hot(i - 1) for i in objects]
-        # grid = objects + [[0 for _ in range(self.observation_vector_space.spaces['observation'].shape[2])]
-        #                   for _ in range(STATE_W * STATE_H - len(objects))]
-        # self.np_random.shuffle(grid)
-        #
-        # state = np.asarray(grid, dtype=int).reshape(self.observation_vector_space.spaces['observation'].shape)
-        # state_idxs = np.unravel_index(np.flatnonzero(state[:,:,8] == 1), state.shape)
+        state = np.reshape(state,(STATE_H,-1,12))
+
         state_idxs = np.where(state[:, :, 8] == 1)
         agent_position = coord(state_idxs[0][0],
                                state_idxs[1][0],

@@ -56,8 +56,8 @@ class CraftingWorldEnvRay(gym.GoalEnv):
 
     metadata = {'render.modes': ['human', 'Non']}
 
-    def __init__(self, store_gif=False, render_flipping=False, task_list=TASK_LIST,
-                 selected_tasks=None, stacking=True):
+    def __init__(self, size=(STATE_W,STATE_H), max_steps=MAX_STEPS, store_gif=False, render_flipping=False, task_list=TASK_LIST,
+                 selected_tasks=TASK_LIST, number_of_tasks=None, stacking=True):
         """
         change the following parameters to create a custom environment
 
@@ -68,12 +68,16 @@ class CraftingWorldEnvRay(gym.GoalEnv):
         :param task_list: list of possible tasks
         """
         self.seed()
-
+        self.STATE_W, self.STATE_H = size
+        self.MAX_STEPS = max_steps
         self.task_list = task_list
-
         self.selected_tasks = selected_tasks
+        self.number_of_tasks = number_of_tasks if number_of_tasks is not None else len(self.selected_tasks)
+        if self.number_of_tasks > len(self.selected_tasks):
+            self.number_of_tasks = len(self.selected_tasks)
+
         self.stacking = stacking
-        pixel_w, pixel_h = STATE_W * 4, STATE_H * 4
+        pixel_w, pixel_h = self.STATE_W * 4, self.STATE_H * 4
         self.observation_space = spaces.Dict(dict(observation=spaces.Box(low=0, high=255, shape=(pixel_w, pixel_h, 3),
                                                                          dtype=int),
                                                   desired_goal=spaces.Box(low=0, high=255, shape=(pixel_w, pixel_h, 3),
@@ -84,7 +88,7 @@ class CraftingWorldEnvRay(gym.GoalEnv):
                                                                                                       3), dtype=int)))
 
         self.observation_vector_space = spaces.Dict(dict(observation=spaces.Box(low=0, high=1,
-                                                                                shape=(STATE_W, STATE_H,
+                                                                                shape=(self.STATE_W, self.STATE_H,
                                                                                        len(OBJECTS) + 1 + len(
                                                                                            PICKUPABLE)),
                                                                                 dtype=int),
@@ -95,7 +99,7 @@ class CraftingWorldEnvRay(gym.GoalEnv):
                                                                                   shape=(1, len(self.task_list)),
                                                                                   dtype=int),
                                                          init_observation=spaces.Box(low=0, high=1,
-                                                                                     shape=(STATE_W, STATE_H,
+                                                                                     shape=(self.STATE_W, self.STATE_H,
                                                                                             len(OBJECTS) + 1 + len(
                                                                                                 PICKUPABLE)),
                                                                                      dtype=int)
@@ -151,16 +155,12 @@ class CraftingWorldEnvRay(gym.GoalEnv):
         if self.render_flipping is True:
             self.store_gif = render_next
 
-        if self.selected_tasks is not None:
-            self.desired_goal_vector = np.zeros(shape=(1, len(self.task_list)), dtype=int)
-            number_of_tasks = self.np_random.randint(len(self.selected_tasks)) + 1 if self.stacking is True else 1
-            # tasks = self.np_random.sample(self.selected_tasks, k=number_of_tasks)
-            task_idx = self.np_random.randint(0, len(self.selected_tasks) + 1, size=number_of_tasks)
-            for task in task_idx:
-                self.desired_goal_vector[0][task] = 1
-                # self.desired_goal_vector[0][self.task_list.index(task)] = 1
-        else:
-            self.desired_goal_vector = self.np_random.randint(2, size=(1, len(self.task_list)))
+        number_of_tasks = self.np_random.randint(self.number_of_tasks) + 1 if self.stacking is True else 1
+        self.desired_goal_vector = np.zeros(shape=(1, len(self.task_list)), dtype=int)
+        task_idx = np.arange(len(self.selected_tasks))
+        self.np_random.shuffle(task_idx)
+        for idx in task_idx[0:number_of_tasks]:
+            self.desired_goal_vector[0][self.task_list.index(self.selected_tasks[idx])]=1
 
         self.achieved_goal_vector = np.zeros(shape=(1, len(self.task_list)), dtype=int)
 
@@ -350,7 +350,7 @@ class CraftingWorldEnvRay(gym.GoalEnv):
 
         observation = self.observation
 
-        done = True if self.step_num >= MAX_STEPS or reward == 1 else False
+        done = True if self.step_num >= self.MAX_STEPS or reward == 1 else False
 
         # render if required
         if self.store_gif is True:
@@ -584,19 +584,28 @@ Desired Goals: {}""".format(self.ep_no, self.step_num, action_label, desired_goa
         :return obs: a sample observation
         :return agent_position: position of the agent within the observation
         """
-        diag = np.diag([1,1,1,1,1,1,1,1,1,0,0,0])
-        state = np.zeros(self.observation_vector_space.spaces['observation'].shape,dtype=int)
-        state[0,:12,:]=diag
-        state=np.reshape(state,(-1,1,12))
+        diag = np.diag([1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0])
+        state = np.zeros(self.observation_vector_space.spaces['observation'].shape, dtype=int)
+        state = np.reshape(state, (-1, 1, 12))
+        state[:12, 0, :] = diag
+        # print(state.shape)
         perm = np.arange(state.shape[0])
         self.np_random.shuffle(perm)
         state = state[perm]
-        state = np.reshape(state,(STATE_H,-1,12))
-
+        state = np.reshape(state, (self.STATE_H, -1, 12))
+        # print(state.shape)
+        # objects = [_ for _ in range(1, 10)]
+        # objects = [self.one_hot(i - 1) for i in objects]
+        # grid = objects + [[0 for _ in range(self.observation_vector_space.spaces['observation'].shape[2])]
+        #                   for _ in range(STATE_W * STATE_H - len(objects))]
+        # self.np_random.shuffle(grid)
+        #
+        # state = np.asarray(grid, dtype=int).reshape(self.observation_vector_space.spaces['observation'].shape)
+        # state_idxs = np.unravel_index(np.flatnonzero(state[:,:,8] == 1), state.shape)
         state_idxs = np.where(state[:, :, 8] == 1)
         agent_position = coord(state_idxs[0][0],
                                state_idxs[1][0],
-                               STATE_W - 1, STATE_H - 1)
+                               self.STATE_W - 1, self.STATE_H - 1)
 
         return state, agent_position
 

@@ -712,12 +712,14 @@ Desired Goals: {}""".format(self.ep_no, self.step_num, action_label, desired_goa
 
 
 
-    def short_circuit_check(self, a, b, n):  #this fn is basically just np.array_equals, but so much faster
+    def short_circuit_check(self, a, b, n):  # this fn is basically just np.array_equals, but so much faster
         L = len(a) // n
         for i in range(n):
             j = i * L
             if not all(a[j:j + L] == b[j:j + L]):
                 return False
+        if not all(a[j + L:] == b[j + L:]):
+            return False
         return True
 
     def compute_reward(self, achieved_goal=None, desired_goal=None, info=None):

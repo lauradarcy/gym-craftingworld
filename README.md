@@ -1,6 +1,7 @@
 # gym-craftingworld
+[![Downloads](https://img.shields.io/pypi/dm/gym-craftingworld)](https://pypi.org/project/gym-craftingworld/)
+[![Lines](https://img.shields.io/tokei/lines/github/lauradarcy/gym-craftingworld)](https://github.com/lauradarcy/gym-craftingworld)
 [![Documentation Status](https://readthedocs.org/projects/gym-craftingworld/badge/?version=latest)](https://gym-craftingworld.readthedocs.io/en/latest/?badge=latest)
-[![Build Status](https://travis-ci.com/lauradarcy/gym-craftingworld.svg?branch=master)](https://travis-ci.com/lauradarcy/gym-craftingworld)
 
 This is an (in-progress) pip-installable gym package for a 2-D crafting environment first described in the [Plan Arithmetic](https://arxiv.org/abs/1910.14033) paper published in Neurips 2019. 
 

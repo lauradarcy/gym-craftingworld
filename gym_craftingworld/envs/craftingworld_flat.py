@@ -50,9 +50,9 @@ class CraftingWorldEnvFlat(CraftingWorldEnvRay):
     metadata = {'render.modes': ['human', 'Non']}
 
     def __init__(self, size=(STATE_W,STATE_H), max_steps=MAX_STEPS, store_gif=False, render_flipping=False, task_list=TASK_LIST,
-                 selected_tasks=TASK_LIST, number_of_tasks=None, stacking=True):
+                 selected_tasks=TASK_LIST, number_of_tasks=None, stacking=True, reward_style=None):
         super().__init__(size=size, max_steps=max_steps, store_gif=store_gif, render_flipping=render_flipping, task_list=task_list,
-                 selected_tasks=selected_tasks, number_of_tasks=number_of_tasks, stacking=stacking)
+                 selected_tasks=selected_tasks, number_of_tasks=number_of_tasks, stacking=stacking, reward_style=reward_style)
         pixel_w, pixel_h = self.STATE_W * 4, self.STATE_H * 4
         self.observation_space = spaces.Box(low=0, high=255, shape=(pixel_w, pixel_h, 3), dtype=int)
 
@@ -65,9 +65,10 @@ class CraftingWorldEnvFlat(CraftingWorldEnvRay):
             anim = animation.ArtistAnimation(self.fig, self.ims, interval=100000, blit=False, repeat_delay=1000)
             tasknums = '-'.join([str(i) for i in np.where(self.desired_goal_vector[0] == 1)[0]])
             cpmleted = '-'.join([str(i) for i in np.where(self.achieved_goal_vector[0] == 1)[0]])
-            anim.save(
-                'renders/env{}/E{}({})_{}({}).gif'.format(self.env_id, self.ep_no, self.step_num, tasknums, cpmleted),
-                writer=animation.PillowWriter(), dpi=100)
+            if cpmleted != '' or self.ep_no%30==0:
+                anim.save(
+                    'renders/env{}/E{}({})_{}({}).gif'.format(self.env_id, self.ep_no, self.step_num, tasknums, cpmleted),
+                    writer=animation.PillowWriter(), dpi=100)
 
         if self.render_flipping is True:
             self.store_gif = render_next
@@ -186,7 +187,7 @@ class CraftingWorldEnvFlat(CraftingWorldEnvRay):
 
         observation = self.obs_image
 
-        done = True if self.step_num >= self.MAX_STEPS or reward == 1 else False
+        done = True if self.step_num >= self.MAX_STEPS or reward == self.MAX_STEPS else False
 
         # render if required
         if self.store_gif is True:
@@ -294,3 +295,4 @@ Desired Goals: {}""".format(self.ep_no, self.step_num, action_label, desired_goa
                 self.agent_pos.row, self.agent_pos.col, 10]
         # print(type(old_pos),type(self.agent_pos.t()))
         return True, old_contents_new_loc, [old_pos,new_pos.t()]
+

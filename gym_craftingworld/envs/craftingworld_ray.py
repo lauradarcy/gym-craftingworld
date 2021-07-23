@@ -57,7 +57,7 @@ class CraftingWorldEnvRay(gym.GoalEnv):
     metadata = {'render.modes': ['human', 'Non']}
 
     def __init__(self, size=(STATE_W,STATE_H), max_steps=MAX_STEPS, store_gif=False, render_flipping=False, task_list=TASK_LIST,
-                 selected_tasks=TASK_LIST, number_of_tasks=None, stacking=True):
+                 selected_tasks=TASK_LIST, number_of_tasks=None, stacking=True, reward_style=None):
         """
         change the following parameters to create a custom environment
 
@@ -68,6 +68,10 @@ class CraftingWorldEnvRay(gym.GoalEnv):
         :param task_list: list of possible tasks
         """
         self.seed()
+        if reward_style is None:
+            self.compute_reward = self.compute_reward_equal
+        else:
+            self.compute_reward = self.compute_reward_subset
         self.STATE_W, self.STATE_H = size
         self.MAX_STEPS = max_steps
         self.task_list = task_list
@@ -350,7 +354,7 @@ class CraftingWorldEnvRay(gym.GoalEnv):
 
         observation = self.observation
 
-        done = True if self.step_num >= self.MAX_STEPS or reward == 1 else False
+        done = True if self.step_num >= self.MAX_STEPS or reward == self.MAX_STEPS else False
 
         # render if required
         if self.store_gif is True:
@@ -435,6 +439,10 @@ class CraftingWorldEnvRay(gym.GoalEnv):
         """
         if state is None:
             state = self.obs_one_hot
+            a_x, a_y = self.agent_pos.t()
+        else:
+            state_idxs = np.where(state[:, :, 8] == 1)
+            a_x, a_y = state_idxs[0][0], state_idxs[1][0]
 
         height, width = state.shape[0], state.shape[1]
         # print(np.zeros((height,width)))
@@ -460,7 +468,7 @@ class CraftingWorldEnvRay(gym.GoalEnv):
         img = np.repeat(img, 4, axis=0)
         img = np.repeat(img, 4, axis=1)
         # print(self.agent_pos)
-        a_x, a_y = self.agent_pos.t()
+
         # print(a_x*4+1,a_y*4+1)
         img[a_x * 4 + 1:a_x * 4 + 3, a_y * 4 + 1:a_y * 4 + 3, :] = 255
         holding = np.max(new_state_h)
@@ -722,9 +730,15 @@ Desired Goals: {}""".format(self.ep_no, self.step_num, action_label, desired_goa
             return False
         return True
 
-    def compute_reward(self, achieved_goal=None, desired_goal=None, info=None):
+    def compute_reward_equal(self, achieved_goal=None, desired_goal=None, info=None):
         if self.short_circuit_check(desired_goal,achieved_goal,4):
-            return 1
+            return self.MAX_STEPS
+        else:
+            return -1
+
+    def compute_reward_subset(self, achieved_goal=None, desired_goal=None, info=None):
+        if np.max(desired_goal-achieved_goal)==0:
+            return self.MAX_STEPS
         else:
             return -1
 
@@ -761,4 +775,3 @@ Desired Goals: {}""".format(self.ep_no, self.step_num, action_label, desired_goa
         holding = np.argmax(one_hot_row[len(OBJECTS) + 1:]) if one_hot_row[len(OBJECTS) + 1:].any() == 1 else None
         agent = one_hot_row[len(OBJECTS)]
         return object_at_location, agent, holding
-

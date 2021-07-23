@@ -8,20 +8,19 @@ in order to create a custom environment, you need to import gym and gym_crafting
     import gym_craftingworld
 
     from gym.envs.registration import register
-    register(id='craftingworldMyCustomEnv-v0',
-             entry_point='gym_craftingworld.envs:CraftingWorldEnv',
-             kwargs={'size': (20,5), 'fixed_goal': ['MakeBread','EatBread','BuildHouse','MoveAxe'],
-                 'tasks_to_ignore':['MoveAxe','MoveHammer','MoveSticks']}
+    register(id='craftingworldMyCustomEnv-v3',
+             entry_point='gym_craftingworld.envs:CraftingWorldEnvRay',
+             kwargs={'stacking':True}
              )
 
-    env = gym.make('craftingworldMyCustomEnv-v0')
+    env = gym.make('craftingworldMyCustomEnv-v3')
 
 
 then just use the environment as usual.
 
 further details about the init args are below:
 
-.. autoclass:: gym_craftingworld.envs.craftingworld_env.CraftingWorldEnv
+.. autoclass:: gym_craftingworld.envs.craftingworld_ray.CraftingWorldEnvRay
     :members:
 
     .. automethod:: __init__

@@ -1,3 +1,5 @@
+"""Setup file for the gym-craftingworld PyPI package."""
+
 import setuptools
 from setuptools import setup
 

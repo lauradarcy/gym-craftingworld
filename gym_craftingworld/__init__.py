@@ -1,3 +1,5 @@
+"""Register gym environments"""
+
 from gym.envs.registration import register
 
 register(id='craftingworld-v3',

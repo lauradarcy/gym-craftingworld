@@ -7,7 +7,7 @@ import numpy as np
 
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
-from gym_craftingworld.envs.coordinates import coord
+from gym_craftingworld.envs.coordinates import Coord
 import matplotlib.patches as mpatches
 import os
 from textwrap import wrap
@@ -139,8 +139,8 @@ class CraftingWorldEnvAltObs(gym.GoalEnv):
         self.observation = None
         # self.init_observation = None
 
-        self.ACTIONS = [coord(-1, 0, name='up'), coord(0, 1, name='right'), coord(1, 0, name='down'),
-                        coord(0, -1, name='left'), 'pickup', 'drop']
+        self.ACTIONS = [Coord(-1, 0, name='up'), Coord(0, 1, name='right'), Coord(1, 0, name='down'),
+                        Coord(0, -1, name='left'), 'pickup', 'drop']
 
         self.action_space = spaces.Discrete(len(self.ACTIONS))
 
@@ -318,7 +318,7 @@ class CraftingWorldEnvAltObs(gym.GoalEnv):
         changed_state = True
         if action_value == 'pickup':
             # print("a")
-            changed_idxs = [self.agent_pos.t()]
+            changed_idxs = [self.agent_pos.tuple()]
             if np.add.reduce(self.obs_one_hot[self.agent_pos.row,self.agent_pos.col,:3])==0:
                 # print('nothing to pick up')
                 changed_state = False
@@ -333,7 +333,7 @@ class CraftingWorldEnvAltObs(gym.GoalEnv):
 
         elif action_value == 'drop':
             # print("b")
-            changed_idxs = [self.agent_pos.t()]
+            changed_idxs = [self.agent_pos.tuple()]
             if np.add.reduce(self.obs_one_hot[self.agent_pos.row,self.agent_pos.col,9:])==0:
                 changed_state = False  # nothing to drop
             elif np.add.reduce(self.obs_one_hot[self.agent_pos.row,self.agent_pos.col,:8])!=0:
@@ -373,7 +373,7 @@ class CraftingWorldEnvAltObs(gym.GoalEnv):
 
         # render if required
         if self.store_gif is True:
-            if type(action_value) == coord:
+            if type(action_value) == Coord:
                 self.__render_gif(state_image=self.obs_image, action_label=action_value.name, reward=reward)
             else:
                 self.__render_gif(state_image=self.obs_image, action_label=action_value, reward=reward)
@@ -398,33 +398,33 @@ class CraftingWorldEnvAltObs(gym.GoalEnv):
         new_pos = self.agent_pos + action
 
         if new_pos == self.agent_pos:  # agent is at an edge coordinate, so can't move in that direction
-            return False, None, [self.agent_pos.t()]
+            return False, None, [self.agent_pos.tuple()]
 
-        new_pos_encoding = self.obs_one_hot[new_pos.t()]
+        new_pos_encoding = self.obs_one_hot[new_pos.tuple()]
 
-        current_pos_encoding = self.obs_one_hot[self.agent_pos.t()]
+        current_pos_encoding = self.obs_one_hot[self.agent_pos.tuple()]
         cant_move_bool = new_pos_encoding[3] * (1 - current_pos_encoding[11]) + new_pos_encoding[4] * (
                     1 - current_pos_encoding[10])
         if cant_move_bool == 1:
             # print("\ncan't move, either tree or rock w/o appropriate tool", self.step_num)
-            return False, None, [self.agent_pos.t()]
+            return False, None, [self.agent_pos.tuple()]
         # old_obs_one_hot = self.obs_one_hot.copy()
         self.obs_one_hot[new_pos.row, new_pos.col, 8:] = current_pos_encoding[8:]
         self.obs_one_hot[self.agent_pos.row, self.agent_pos.col, 8:] = 0
-        old_pos = self.agent_pos.t()
+        old_pos = self.agent_pos.tuple()
         self.agent_pos = new_pos
-        old_contents_new_loc = self.obs_one_hot[self.agent_pos.t()].copy()
+        old_contents_new_loc = self.obs_one_hot[self.agent_pos.tuple()].copy()
         # print(old_contents_new_loc)
-        # new_pos_encoding = self.obs_one_hot[self.agent_pos.t()]
+        # new_pos_encoding = self.obs_one_hot[self.agent_pos.tuple()]
         # current_obj = np.unravel_index(np.flatnonzero(self.obs_one_hot[self.agent_pos.row, self.agent_pos.col,:8] == 1),
         #                                self.obs_one_hot[self.agent_pos.row, self.agent_pos.col,:8].shape)[0]
         current_obj = np.where(new_pos_encoding[:8] == 1)[0]
         if len(current_obj) == 0:
             # print("no objects on new square, return")
-            return True, None, [old_pos,new_pos.t()]
+            return True, None, [old_pos,new_pos.tuple()]
         if current_obj[0] in [1,2,6]:
             # print("on axe,hammer, or house, no changes needed, return")
-            return True, old_contents_new_loc, [old_pos,new_pos.t()]
+            return True, old_contents_new_loc, [old_pos,new_pos.tuple()]
         elif current_obj[0] in [3,4,5]:
             # print("moved over bread, tree or rock")
             self.obs_one_hot[self.agent_pos.row, self.agent_pos.col, current_obj[0]] = 0
@@ -441,8 +441,8 @@ class CraftingWorldEnvAltObs(gym.GoalEnv):
                         1 - self.obs_one_hot[self.agent_pos.row, self.agent_pos.col, 10])
             self.obs_one_hot[self.agent_pos.row, self.agent_pos.col, 5] = self.obs_one_hot[
                 self.agent_pos.row, self.agent_pos.col, 10]
-        # print(type(old_pos),type(self.agent_pos.t()))
-        return True, old_contents_new_loc, [old_pos,new_pos.t()]
+        # print(type(old_pos),type(self.agent_pos.tuple()))
+        return True, old_contents_new_loc, [old_pos,new_pos.tuple()]
 
     def render(self, state=None, mode='Non', tile_size=4):
         """
@@ -454,7 +454,7 @@ class CraftingWorldEnvAltObs(gym.GoalEnv):
         """
         if state is None:
             state = self.obs_one_hot
-            a_x, a_y = self.agent_pos.t()
+            a_x, a_y = self.agent_pos.tuple()
         else:
             state_idxs = np.where(state[:, :, 8] == 1)
             a_x, a_y = state_idxs[0][0], state_idxs[1][0]
@@ -590,7 +590,7 @@ class CraftingWorldEnvAltObs(gym.GoalEnv):
             # new_color = np.dot(self.obs_one_hot[x, y, :8], COLORS_M)
             self.obs_image[x * 3:x * 3 + 3, y * 3:y * 3 + 3] = new_tile
             # print(np.dot(self.obs_one_hot[x,y,:8],COLORS_M))
-            if (x, y) == self.agent_pos.t():
+            if (x, y) == self.agent_pos.tuple():
                 # pass
                 # print("agent is here!")
                 # self.obs_image[x * 4 + 1:x * 4 + 3, y * 4 + 1:y * 4 + 3, :] = 255
@@ -663,7 +663,7 @@ Desired Goals: {}""".format(self.ep_no, self.step_num, action_label, desired_goa
         # state = np.asarray(grid, dtype=int).reshape(self.observation_vector_space.spaces['observation'].shape)
         # state_idxs = np.unravel_index(np.flatnonzero(state[:,:,8] == 1), state.shape)
         state_idxs = np.where(state[:, :, 8] == 1)
-        agent_position = coord(state_idxs[0][0],
+        agent_position = Coord(state_idxs[0][0],
                                state_idxs[1][0],
                                self.STATE_W - 1, self.STATE_H - 1)
 
@@ -677,7 +677,7 @@ Desired Goals: {}""".format(self.ep_no, self.step_num, action_label, desired_goa
         """
         # print(old_contents_new_loc)
         # make_bread, eat_bread, build_house, chop_tree, chop_rock, go_to_house, move_axe, move_hammer, move_sticks
-        new_objects = np.nonzero(self.obs_one_hot[self.agent_pos.t()])[0]
+        new_objects = np.nonzero(self.obs_one_hot[self.agent_pos.tuple()])[0]
         old_object = np.nonzero(old_contents_new_loc)[0][0] if old_contents_new_loc is not None else 100
 
         if old_object == 5:
@@ -697,7 +697,7 @@ Desired Goals: {}""".format(self.ep_no, self.step_num, action_label, desired_goa
             pass # agent not holding anything, so don't have to check the move_object tasks
         elif new_objects[-1] == 9:
             # agent holding sticks
-            initial_contents = np.nonzero(self.INIT_OBS_VECTOR[self.agent_pos.t()])[0]
+            initial_contents = np.nonzero(self.INIT_OBS_VECTOR[self.agent_pos.tuple()])[0]
             if len(initial_contents) == 0:  # originally an empty space
                 self.achieved_goal_vector[0][8] = 1
             elif initial_contents[0] == 0:
@@ -712,7 +712,7 @@ Desired Goals: {}""".format(self.ep_no, self.step_num, action_label, desired_goa
             # agent holding axe
             if old_object == 7:
                 self.achieved_goal_vector[0][0] = 1  # make_bread
-            initial_contents = np.nonzero(self.INIT_OBS_VECTOR[self.agent_pos.t()])[0]
+            initial_contents = np.nonzero(self.INIT_OBS_VECTOR[self.agent_pos.tuple()])[0]
             if len(initial_contents) == 0:  # originally an empty space
                 self.achieved_goal_vector[0][6] = 1
             else:
@@ -721,7 +721,7 @@ Desired Goals: {}""".format(self.ep_no, self.step_num, action_label, desired_goa
             # agent holding hammer
             if old_object == 0:
                 self.achieved_goal_vector[0][2] = 1  # build_house
-            initial_contents = np.nonzero(self.INIT_OBS_VECTOR[self.agent_pos.t()])[0]
+            initial_contents = np.nonzero(self.INIT_OBS_VECTOR[self.agent_pos.tuple()])[0]
             if len(initial_contents) == 0:  # originally an empty space
                 self.achieved_goal_vector[0][7] = 1
             else:
@@ -755,7 +755,7 @@ Desired Goals: {}""".format(self.ep_no, self.step_num, action_label, desired_goa
         #     # there was something in this spot on the previous timestep
         #     if np.add.reduce(self.obs_one_hot[self.agent_pos.row,self.agent_pos.col,:8]) == 0:
         #         # there isn't an object here now
-        #         print(np.nonzero(self.obs_one_hot[self.agent_pos.t()]))
+        #         print(np.nonzero(self.obs_one_hot[self.agent_pos.tuple()]))
         #         if self.INIT_OBS_VECTOR[self.agent_pos.row,self.agent_pos.col,3]==0:
         #             pass
         # else:

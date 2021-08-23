@@ -19,9 +19,16 @@ LEFT = 3
 
 PICKUPABLE = ['sticks', 'axe', 'hammer']
 OBJECTS = ['sticks', 'axe', 'hammer', 'rock', 'tree', 'bread', 'house', 'wheat']
-
+OBJECTS_plus_agent = ['sticks', 'axe', 'hammer', 'rock', 'tree', 'bread', 'house', 'wheat', 'agent']
 OBJECT_RATIOS = [1, 1, 1, 1, 1, 1, 1, 1]
 OBJECT_PROBS = [x / sum(OBJECT_RATIOS) for x in OBJECT_RATIOS]
+
+CPV_COLORS = [(45, 82, 160), (255, 102, 102), (204, 204, 0), (211, 211, 211), (34, 133, 34), (0, 215, 255),
+              (153, 52, 255), (10, 215, 100), (0, 0, 255)]
+
+
+CPV_COLORS_M = np.asarray(CPV_COLORS)
+
 
 COLORS = [(110, 69, 39), (255, 105, 180), (100, 100, 200), (100, 100, 100), (0, 128, 0), (205, 133, 63), (197, 91, 97),
           (240, 230, 140)]
@@ -34,7 +41,8 @@ COLORS_H = np.asarray([[145, 186, 216], [0, 150, 75], [155, 155, 55]])
 COLORS_H2 = np.asarray([(110, 69, 39), (255, 105, 180), (100, 100, 200)])
 
 COLORS_N_M = np.asarray(COLORS_N)
-COLORS_A_M = np.asarray(COLORS_A).reshape((3,3,3))
+# COLORS_A_M = np.asarray(COLORS_A).reshape((3,3,3))
+COLORS_A_M = CPV_COLORS_M.reshape((3,3,3))
 OBJECT_ENCODING = []
 for i in range(9):
     zeros = [0 for _ in range(9)]
@@ -47,10 +55,19 @@ OBJECTS_M = np.asarray([0,1,2,3,4,5,6,7,8]).reshape(3,3)
 # print(COLORS_A_M.shape)
 # print(COLORS_A_M)
 COLORS_M = np.asarray(COLORS)
-COLORS_rgba = [(110 / 255.0, 69 / 255.0, 39 / 255.0, .9), (255 / 255.0, 105 / 255.0, 180 / 255.0, .9),
-               (100 / 255.0, 100 / 255.0, 200 / 255.0, .9), (100 / 255.0, 100 / 255.0, 100 / 255.0, .9),
-               (0 / 255.0, 128 / 255.0, 0 / 255.0, .9), (205 / 255.0, 133 / 255.0, 63 / 255.0, .9),
-               (197 / 255.0, 91 / 255.0, 97 / 255.0, .9), (240 / 255.0, 230 / 255.0, 140 / 255.0, .9)]
+# COLORS_rgba = [(110 / 255.0, 69 / 255.0, 39 / 255.0, .9), (255 / 255.0, 105 / 255.0, 180 / 255.0, .9),
+#                (100 / 255.0, 100 / 255.0, 200 / 255.0, .9), (100 / 255.0, 100 / 255.0, 100 / 255.0, .9),
+#                (0 / 255.0, 128 / 255.0, 0 / 255.0, .9), (205 / 255.0, 133 / 255.0, 63 / 255.0, .9),
+#                (197 / 255.0, 91 / 255.0, 97 / 255.0, .9), (240 / 255.0, 230 / 255.0, 140 / 255.0, .9)]
+COLORS_rgba = [(45/255.0, 82/255.0, 160/255.0, .9),
+                   (255/255.0, 102/255.0, 102/255.0, .9),
+                   (204/255.0, 204/255.0, 0/255.0, .9),
+                   (211/255.0, 211/255.0, 211/255.0, .9),
+                   (34/255.0, 133/255.0, 34/255.0, .9),
+                   (0/255.0, 215/255.0, 255/255.0, .9),
+                   (153/255.0, 52/255.0, 255/255.0, .9),
+                   (10/255.0, 215/255.0, 100/255.0, .9),
+                   (0/255.0, 0/255.0, 255/255.0, .9)]
 TASK_COLORS = ['red', 'green']
 TASK_LIST = ['MakeBread', 'EatBread', 'BuildHouse', 'ChopTree', 'ChopRock', 'GoToHouse', 'MoveAxe', 'MoveHammer',
              'MoveSticks']
@@ -139,8 +156,8 @@ class CraftingWorldEnvAltObs(gym.GoalEnv):
         self.observation = None
         # self.init_observation = None
 
-        self.ACTIONS = [Coord(-1, 0, name='up'), Coord(0, 1, name='right'), Coord(1, 0, name='down'),
-                        Coord(0, -1, name='left'), 'pickup', 'drop']
+        self.ACTIONS = [coord(-1, 0, name='up'), coord(0, 1, name='right'), coord(1, 0, name='down'),
+                        coord(0, -1, name='left'), 'pickup', 'drop']
 
         self.action_space = spaces.Discrete(len(self.ACTIONS))
 
@@ -215,8 +232,13 @@ class CraftingWorldEnvAltObs(gym.GoalEnv):
             # else:
             #     plt.clf()
             self.fig = plt.figure()
-            self.ax1 = self.fig.add_subplot(1, 2, 1)
-            self.ax2 = self.fig.add_subplot(1, 2, 2)
+
+            self.fig, (self.ax1, self.ax2, self.ax3) = plt.subplots(1, 3, gridspec_kw={'width_ratios': [2,2, 1]}, sharex=True, sharey=True)
+            self.ax3.axis("off")
+            # self.ax1 = self.fig.add_subplot(1, 3, 1)
+            # self.ax2 = self.fig.add_subplot(1, 3, 2)
+            # self.fig.subplots_adjust(left=-.25)
+            # plt.tight_layout(rect=(.1, .5, .9, .5))
             self.ims = []
             self.__render_gif(state_image=self.obs_image, reward=0)
 
@@ -318,7 +340,7 @@ class CraftingWorldEnvAltObs(gym.GoalEnv):
         changed_state = True
         if action_value == 'pickup':
             # print("a")
-            changed_idxs = [self.agent_pos.tuple()]
+            changed_idxs = [self.agent_pos.t()]
             if np.add.reduce(self.obs_one_hot[self.agent_pos.row,self.agent_pos.col,:3])==0:
                 # print('nothing to pick up')
                 changed_state = False
@@ -333,7 +355,7 @@ class CraftingWorldEnvAltObs(gym.GoalEnv):
 
         elif action_value == 'drop':
             # print("b")
-            changed_idxs = [self.agent_pos.tuple()]
+            changed_idxs = [self.agent_pos.t()]
             if np.add.reduce(self.obs_one_hot[self.agent_pos.row,self.agent_pos.col,9:])==0:
                 changed_state = False  # nothing to drop
             elif np.add.reduce(self.obs_one_hot[self.agent_pos.row,self.agent_pos.col,:8])!=0:
@@ -373,7 +395,7 @@ class CraftingWorldEnvAltObs(gym.GoalEnv):
 
         # render if required
         if self.store_gif is True:
-            if type(action_value) == Coord:
+            if type(action_value) == coord:
                 self.__render_gif(state_image=self.obs_image, action_label=action_value.name, reward=reward)
             else:
                 self.__render_gif(state_image=self.obs_image, action_label=action_value, reward=reward)
@@ -398,33 +420,33 @@ class CraftingWorldEnvAltObs(gym.GoalEnv):
         new_pos = self.agent_pos + action
 
         if new_pos == self.agent_pos:  # agent is at an edge coordinate, so can't move in that direction
-            return False, None, [self.agent_pos.tuple()]
+            return False, None, [self.agent_pos.t()]
 
-        new_pos_encoding = self.obs_one_hot[new_pos.tuple()]
+        new_pos_encoding = self.obs_one_hot[new_pos.t()]
 
-        current_pos_encoding = self.obs_one_hot[self.agent_pos.tuple()]
+        current_pos_encoding = self.obs_one_hot[self.agent_pos.t()]
         cant_move_bool = new_pos_encoding[3] * (1 - current_pos_encoding[11]) + new_pos_encoding[4] * (
                     1 - current_pos_encoding[10])
         if cant_move_bool == 1:
             # print("\ncan't move, either tree or rock w/o appropriate tool", self.step_num)
-            return False, None, [self.agent_pos.tuple()]
+            return False, None, [self.agent_pos.t()]
         # old_obs_one_hot = self.obs_one_hot.copy()
         self.obs_one_hot[new_pos.row, new_pos.col, 8:] = current_pos_encoding[8:]
         self.obs_one_hot[self.agent_pos.row, self.agent_pos.col, 8:] = 0
-        old_pos = self.agent_pos.tuple()
+        old_pos = self.agent_pos.t()
         self.agent_pos = new_pos
-        old_contents_new_loc = self.obs_one_hot[self.agent_pos.tuple()].copy()
+        old_contents_new_loc = self.obs_one_hot[self.agent_pos.t()].copy()
         # print(old_contents_new_loc)
-        # new_pos_encoding = self.obs_one_hot[self.agent_pos.tuple()]
+        # new_pos_encoding = self.obs_one_hot[self.agent_pos.t()]
         # current_obj = np.unravel_index(np.flatnonzero(self.obs_one_hot[self.agent_pos.row, self.agent_pos.col,:8] == 1),
         #                                self.obs_one_hot[self.agent_pos.row, self.agent_pos.col,:8].shape)[0]
         current_obj = np.where(new_pos_encoding[:8] == 1)[0]
         if len(current_obj) == 0:
             # print("no objects on new square, return")
-            return True, None, [old_pos,new_pos.tuple()]
+            return True, None, [old_pos,new_pos.t()]
         if current_obj[0] in [1,2,6]:
             # print("on axe,hammer, or house, no changes needed, return")
-            return True, old_contents_new_loc, [old_pos,new_pos.tuple()]
+            return True, old_contents_new_loc, [old_pos,new_pos.t()]
         elif current_obj[0] in [3,4,5]:
             # print("moved over bread, tree or rock")
             self.obs_one_hot[self.agent_pos.row, self.agent_pos.col, current_obj[0]] = 0
@@ -441,8 +463,8 @@ class CraftingWorldEnvAltObs(gym.GoalEnv):
                         1 - self.obs_one_hot[self.agent_pos.row, self.agent_pos.col, 10])
             self.obs_one_hot[self.agent_pos.row, self.agent_pos.col, 5] = self.obs_one_hot[
                 self.agent_pos.row, self.agent_pos.col, 10]
-        # print(type(old_pos),type(self.agent_pos.tuple()))
-        return True, old_contents_new_loc, [old_pos,new_pos.tuple()]
+        # print(type(old_pos),type(self.agent_pos.t()))
+        return True, old_contents_new_loc, [old_pos,new_pos.t()]
 
     def render(self, state=None, mode='Non', tile_size=4):
         """
@@ -454,7 +476,7 @@ class CraftingWorldEnvAltObs(gym.GoalEnv):
         """
         if state is None:
             state = self.obs_one_hot
-            a_x, a_y = self.agent_pos.tuple()
+            a_x, a_y = self.agent_pos.t()
         else:
             state_idxs = np.where(state[:, :, 8] == 1)
             a_x, a_y = state_idxs[0][0], state_idxs[1][0]
@@ -481,6 +503,7 @@ class CraftingWorldEnvAltObs(gym.GoalEnv):
         # print(objects_n)
         # object_img = np.repeat(COLORS_A_M, height, axis=0)
         # object_img = np.repeat(object_img, width, axis=1)
+
         object_img = np.tile(COLORS_A_M, (height,width,1))
         objects_loc = np.tile(OBJECT_ENCODING_M, (height,width,1))
 
@@ -590,7 +613,7 @@ class CraftingWorldEnvAltObs(gym.GoalEnv):
             # new_color = np.dot(self.obs_one_hot[x, y, :8], COLORS_M)
             self.obs_image[x * 3:x * 3 + 3, y * 3:y * 3 + 3] = new_tile
             # print(np.dot(self.obs_one_hot[x,y,:8],COLORS_M))
-            if (x, y) == self.agent_pos.tuple():
+            if (x, y) == self.agent_pos.t():
                 # pass
                 # print("agent is here!")
                 # self.obs_image[x * 4 + 1:x * 4 + 3, y * 4 + 1:y * 4 + 3, :] = 255
@@ -609,6 +632,13 @@ class CraftingWorldEnvAltObs(gym.GoalEnv):
         img2 = state_image if state_image is not None else self.render(mode='Non')
         # im = plt.imshow(img2, animated=True)
         im = self.ax1.imshow(img2, animated=True)
+        patches = [mpatches.Patch(color=COLORS_rgba[i], label="{l}".format(l=OBJECTS_plus_agent[i])) for i in range(len(COLORS_rgba))]
+        '''patches.append(mpatches.Patch(color='white', label="Tasks:"))
+        tasks = [key for key,value in enumerate(self.desired_goal[0]) if value == 1]
+        patches += [mpatches.Patch(color=TASK_COLORS[self.achieved_goal[0][idx]],
+                                   label=self.task_list[idx]) for idx in tasks]'''
+        # put those patched as legend-handles into the legend
+        self.ax3.legend(handles=patches, bbox_to_anchor=(.5, 0.5), loc='center', borderaxespad=0.)
         im2 = self.ax2.imshow(self.observation['desired_goal'])
         desired_goals = "\n".join(wrap(
             ', '.join([self.task_list[key] for key, value in enumerate(self.desired_goal_vector[0]) if value == 1]),
@@ -622,19 +652,12 @@ Desired Goals: {}""".format(self.ep_no, self.step_num, action_label, desired_goa
 
         bottom_text = "Achieved Goals: {}\nd_g: {}\na_g: {},   r: {}".format(achieved_goals, self.desired_goal_vector,
                                                                              self.achieved_goal_vector, reward)
-        ttl = plt.text(0.00, 1.01, title_str, horizontalalignment='left',
+        ttl = plt.text(0.00, .81, title_str, horizontalalignment='left',
                        verticalalignment='bottom', transform=self.ax.transAxes)
-        txt = plt.text(0.00, -0.02, bottom_text, horizontalalignment='left',
+        txt = plt.text(0.00, 0.12, bottom_text, horizontalalignment='left',
                        verticalalignment='top', transform=self.ax.transAxes)
         plt.xticks([])
         plt.yticks([])
-        patches = [mpatches.Patch(color=COLORS_rgba[i], label="{l}".format(l=OBJECTS[i])) for i in range(len(COLORS))]
-        '''patches.append(mpatches.Patch(color='white', label="Tasks:"))
-        tasks = [key for key,value in enumerate(self.desired_goal[0]) if value == 1]
-        patches += [mpatches.Patch(color=TASK_COLORS[self.achieved_goal[0][idx]],
-                                   label=self.task_list[idx]) for idx in tasks]'''
-        # put those patched as legend-handles into the legend
-        plt.legend(handles=patches, bbox_to_anchor=(1.025, 1), loc=2, borderaxespad=0.)
 
         self.ims.append([im, im2, ttl, txt])
 
@@ -663,7 +686,7 @@ Desired Goals: {}""".format(self.ep_no, self.step_num, action_label, desired_goa
         # state = np.asarray(grid, dtype=int).reshape(self.observation_vector_space.spaces['observation'].shape)
         # state_idxs = np.unravel_index(np.flatnonzero(state[:,:,8] == 1), state.shape)
         state_idxs = np.where(state[:, :, 8] == 1)
-        agent_position = Coord(state_idxs[0][0],
+        agent_position = coord(state_idxs[0][0],
                                state_idxs[1][0],
                                self.STATE_W - 1, self.STATE_H - 1)
 
@@ -677,7 +700,7 @@ Desired Goals: {}""".format(self.ep_no, self.step_num, action_label, desired_goa
         """
         # print(old_contents_new_loc)
         # make_bread, eat_bread, build_house, chop_tree, chop_rock, go_to_house, move_axe, move_hammer, move_sticks
-        new_objects = np.nonzero(self.obs_one_hot[self.agent_pos.tuple()])[0]
+        new_objects = np.nonzero(self.obs_one_hot[self.agent_pos.t()])[0]
         old_object = np.nonzero(old_contents_new_loc)[0][0] if old_contents_new_loc is not None else 100
 
         if old_object == 5:
@@ -697,7 +720,7 @@ Desired Goals: {}""".format(self.ep_no, self.step_num, action_label, desired_goa
             pass # agent not holding anything, so don't have to check the move_object tasks
         elif new_objects[-1] == 9:
             # agent holding sticks
-            initial_contents = np.nonzero(self.INIT_OBS_VECTOR[self.agent_pos.tuple()])[0]
+            initial_contents = np.nonzero(self.INIT_OBS_VECTOR[self.agent_pos.t()])[0]
             if len(initial_contents) == 0:  # originally an empty space
                 self.achieved_goal_vector[0][8] = 1
             elif initial_contents[0] == 0:
@@ -712,7 +735,7 @@ Desired Goals: {}""".format(self.ep_no, self.step_num, action_label, desired_goa
             # agent holding axe
             if old_object == 7:
                 self.achieved_goal_vector[0][0] = 1  # make_bread
-            initial_contents = np.nonzero(self.INIT_OBS_VECTOR[self.agent_pos.tuple()])[0]
+            initial_contents = np.nonzero(self.INIT_OBS_VECTOR[self.agent_pos.t()])[0]
             if len(initial_contents) == 0:  # originally an empty space
                 self.achieved_goal_vector[0][6] = 1
             else:
@@ -721,7 +744,7 @@ Desired Goals: {}""".format(self.ep_no, self.step_num, action_label, desired_goa
             # agent holding hammer
             if old_object == 0:
                 self.achieved_goal_vector[0][2] = 1  # build_house
-            initial_contents = np.nonzero(self.INIT_OBS_VECTOR[self.agent_pos.tuple()])[0]
+            initial_contents = np.nonzero(self.INIT_OBS_VECTOR[self.agent_pos.t()])[0]
             if len(initial_contents) == 0:  # originally an empty space
                 self.achieved_goal_vector[0][7] = 1
             else:
@@ -755,7 +778,7 @@ Desired Goals: {}""".format(self.ep_no, self.step_num, action_label, desired_goa
         #     # there was something in this spot on the previous timestep
         #     if np.add.reduce(self.obs_one_hot[self.agent_pos.row,self.agent_pos.col,:8]) == 0:
         #         # there isn't an object here now
-        #         print(np.nonzero(self.obs_one_hot[self.agent_pos.tuple()]))
+        #         print(np.nonzero(self.obs_one_hot[self.agent_pos.t()]))
         #         if self.INIT_OBS_VECTOR[self.agent_pos.row,self.agent_pos.col,3]==0:
         #             pass
         # else:

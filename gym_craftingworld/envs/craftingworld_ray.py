@@ -7,7 +7,7 @@ import numpy as np
 
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
-# from gym_craftingworld.envs.coordinates import Coord
+from gym_craftingworld.envs.coordinates import Coord
 import matplotlib.patches as mpatches
 import os
 from textwrap import wrap
@@ -124,8 +124,8 @@ class CraftingWorldEnvRay(gym.GoalEnv):
         self.observation = None
         # self.init_observation = None
 
-        self.ACTIONS = [coord(-1, 0, name='up'), coord(0, 1, name='right'), coord(1, 0, name='down'),
-                        coord(0, -1, name='left'), 'pickup', 'drop']
+        self.ACTIONS = [Coord(-1, 0, name='up'), Coord(0, 1, name='right'), Coord(1, 0, name='down'),
+                        Coord(0, -1, name='left'), 'pickup', 'drop']
 
         self.action_space = spaces.Discrete(len(self.ACTIONS))
 

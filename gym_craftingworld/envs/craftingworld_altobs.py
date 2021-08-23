@@ -156,8 +156,8 @@ class CraftingWorldEnvAltObs(gym.GoalEnv):
         self.observation = None
         # self.init_observation = None
 
-        self.ACTIONS = [coord(-1, 0, name='up'), coord(0, 1, name='right'), coord(1, 0, name='down'),
-                        coord(0, -1, name='left'), 'pickup', 'drop']
+        self.ACTIONS = [Coord(-1, 0, name='up'), Coord(0, 1, name='right'), Coord(1, 0, name='down'),
+                        Coord(0, -1, name='left'), 'pickup', 'drop']
 
         self.action_space = spaces.Discrete(len(self.ACTIONS))
 
@@ -395,7 +395,7 @@ class CraftingWorldEnvAltObs(gym.GoalEnv):
 
         # render if required
         if self.store_gif is True:
-            if type(action_value) == coord:
+            if type(action_value) == Coord:
                 self.__render_gif(state_image=self.obs_image, action_label=action_value.name, reward=reward)
             else:
                 self.__render_gif(state_image=self.obs_image, action_label=action_value, reward=reward)
@@ -686,7 +686,7 @@ Desired Goals: {}""".format(self.ep_no, self.step_num, action_label, desired_goa
         # state = np.asarray(grid, dtype=int).reshape(self.observation_vector_space.spaces['observation'].shape)
         # state_idxs = np.unravel_index(np.flatnonzero(state[:,:,8] == 1), state.shape)
         state_idxs = np.where(state[:, :, 8] == 1)
-        agent_position = coord(state_idxs[0][0],
+        agent_position = Coord(state_idxs[0][0],
                                state_idxs[1][0],
                                self.STATE_W - 1, self.STATE_H - 1)
 

@@ -358,7 +358,7 @@ class CraftingWorldEnvRay(gym.GoalEnv):
 
         # render if required
         if self.store_gif is True:
-            if type(action_value) == coord:
+            if type(action_value) == Coord:
                 self.__render_gif(state_image=self.obs_image, action_label=action_value.name, reward=reward)
             else:
                 self.__render_gif(state_image=self.obs_image, action_label=action_value, reward=reward)
@@ -611,7 +611,7 @@ Desired Goals: {}""".format(self.ep_no, self.step_num, action_label, desired_goa
         # state = np.asarray(grid, dtype=int).reshape(self.observation_vector_space.spaces['observation'].shape)
         # state_idxs = np.unravel_index(np.flatnonzero(state[:,:,8] == 1), state.shape)
         state_idxs = np.where(state[:, :, 8] == 1)
-        agent_position = coord(state_idxs[0][0],
+        agent_position = Coord(state_idxs[0][0],
                                state_idxs[1][0],
                                self.STATE_W - 1, self.STATE_H - 1)
 

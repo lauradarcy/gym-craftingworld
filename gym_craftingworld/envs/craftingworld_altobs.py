@@ -88,7 +88,7 @@ class CraftingWorldEnvAltObs(gym.GoalEnv):
 
     metadata = {'render.modes': ['human', 'Non']}
 
-    def __init__(self, size=(STATE_W,STATE_H), max_steps=MAX_STEPS, store_gif=False, render_flipping=False, task_list=TASK_LIST,
+    def __init__(self, size=(STATE_W,STATE_H), fixed_init_state=None, max_steps=MAX_STEPS, store_gif=False, render_flipping=False, task_list=TASK_LIST,
                  selected_tasks=TASK_LIST, number_of_tasks=None, stacking=True, reward_style=None, stacked_obs = False):
         """
         change the following parameters to create a custom environment
@@ -150,6 +150,7 @@ class CraftingWorldEnvAltObs(gym.GoalEnv):
 
         self.achieved_goal_vector = np.zeros(shape=(1, len(self.task_list)), dtype=int)
 
+        self.fixed_init_state = fixed_init_state
         self.obs_one_hot, self.agent_pos = None, None
         self.obs_image = None
         self.INIT_OBS_VECTOR = None
@@ -205,7 +206,10 @@ class CraftingWorldEnvAltObs(gym.GoalEnv):
 
         self.achieved_goal_vector = np.zeros(shape=(1, len(self.task_list)), dtype=int)
 
-        self.obs_one_hot, self.agent_pos = self.sample_state()
+        if self.fixed_init_state is None:
+            self.obs_one_hot, self.agent_pos = self.sample_state()
+        else:
+            self.obs_one_hot, self.agent_pos = self.generate_fixed_initial_state()
 
         self.INIT_OBS_VECTOR = self.obs_one_hot.copy()
 
@@ -696,6 +700,21 @@ Desired Goals: {}""".format(self.ep_no, self.step_num, action_label, desired_goa
         #
         # state = np.asarray(grid, dtype=int).reshape(self.observation_vector_space.spaces['observation'].shape)
         # state_idxs = np.unravel_index(np.flatnonzero(state[:,:,8] == 1), state.shape)
+        state_idxs = np.where(state[:, :, 8] == 1)
+        agent_position = Coord(state_idxs[0][0],
+                               state_idxs[1][0],
+                               self.STATE_W - 1, self.STATE_H - 1)
+
+        return state, agent_position
+
+    def generate_fixed_initial_state(self):
+        """
+        produces a observation with one of each object
+        :return obs: a sample observation
+        :return agent_position: position of the agent within the observation
+        """
+        assert self.fixed_init_state.shape == self.observation_vector_space.spaces['observation'].shape
+        state = self.fixed_init_state.copy()
         state_idxs = np.where(state[:, :, 8] == 1)
         agent_position = Coord(state_idxs[0][0],
                                state_idxs[1][0],

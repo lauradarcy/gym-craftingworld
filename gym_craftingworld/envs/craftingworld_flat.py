@@ -49,9 +49,9 @@ class CraftingWorldEnvFlat(CraftingWorldEnvRay):
 
     metadata = {'render.modes': ['human', 'Non']}
 
-    def __init__(self, size=(STATE_W,STATE_H), max_steps=MAX_STEPS, store_gif=False, render_flipping=False, task_list=TASK_LIST,
+    def __init__(self, size=(STATE_W,STATE_H), max_steps=MAX_STEPS, store_gif=False, render_save_rate=1, task_list=TASK_LIST,
                  selected_tasks=TASK_LIST, number_of_tasks=None, stacking=True, reward_style=None):
-        super().__init__(size=size, max_steps=max_steps, store_gif=store_gif, render_flipping=render_flipping, task_list=task_list,
+        super().__init__(size=size, max_steps=max_steps, store_gif=store_gif, render_save_rate=render_save_rate, task_list=task_list,
                  selected_tasks=selected_tasks, number_of_tasks=number_of_tasks, stacking=stacking, reward_style=reward_style)
         pixel_w, pixel_h = self.STATE_W * 4, self.STATE_H * 4
         self.observation_space = spaces.Box(low=0, high=255, shape=(pixel_w, pixel_h, 3), dtype=int)
@@ -61,7 +61,7 @@ class CraftingWorldEnvFlat(CraftingWorldEnvRay):
         reset the environment
         """
         # save episode as gif
-        if self.store_gif is True and self.step_num != 0:
+        if self.store_gif is True and self.step_num != 0 and self.ep_no % self.render_save_rate == 0:
             anim = animation.ArtistAnimation(self.fig, self.ims, interval=100000, blit=False, repeat_delay=1000)
             tasknums = '-'.join([str(i) for i in np.where(self.desired_goal_vector[0] == 1)[0]])
             cpmleted = '-'.join([str(i) for i in np.where(self.achieved_goal_vector[0] == 1)[0]])
@@ -69,9 +69,6 @@ class CraftingWorldEnvFlat(CraftingWorldEnvRay):
                 anim.save(
                     'renders/env{}/E{}({})_{}({}).gif'.format(self.env_id, self.ep_no, self.step_num, tasknums, cpmleted),
                     writer=animation.PillowWriter(), dpi=100)
-
-        if self.render_flipping is True:
-            self.store_gif = render_next
 
         number_of_tasks = self.np_random.randint(self.number_of_tasks) + 1 if self.stacking is True else 1
         self.desired_goal_vector = np.zeros(shape=(1, len(self.task_list)), dtype=int)
@@ -106,7 +103,7 @@ class CraftingWorldEnvFlat(CraftingWorldEnvRay):
 
         self.step_num = 0
 
-        if self.store_gif:
+        if self.store_gif and self.ep_no % self.render_save_rate == 0:
             # reset gif
             plt.close('all')
             # if self.fig is None:

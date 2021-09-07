@@ -88,7 +88,7 @@ class CraftingWorldEnvAltObs(gym.GoalEnv):
 
     metadata = {'render.modes': ['human', 'Non']}
 
-    def __init__(self, size=(STATE_W,STATE_H), fixed_init_state=None, max_steps=MAX_STEPS, store_gif=False, render_flipping=False, task_list=TASK_LIST,
+    def __init__(self, size=(STATE_W,STATE_H), fixed_init_state=None, max_steps=MAX_STEPS, store_gif=False, render_save_rate=1, task_list=TASK_LIST,
                  selected_tasks=TASK_LIST, number_of_tasks=None, stacking=True, reward_style=None, stacked_obs = False):
         """
         change the following parameters to create a custom environment
@@ -96,7 +96,6 @@ class CraftingWorldEnvAltObs(gym.GoalEnv):
         :param selected_tasks: list of tasks for the desired goal
         :param stacking: bool whether multiple tasks can be selected for desired goal
         :param store_gif: whether or not to store every episode as a gif in a /renders/ subdirectory
-        :param render_flipping: set to true if only specific episodes need to be rendered
         :param task_list: list of possible tasks
         """
         self.seed()
@@ -169,7 +168,7 @@ class CraftingWorldEnvAltObs(gym.GoalEnv):
 
         self.store_gif = store_gif
 
-        self.render_flipping = render_flipping
+        self.render_save_rate = render_save_rate
         self.env_id = None
         self.fig, self.ax1, self.ax2, self.ims = None, None, None, None
         self.ep_no = 0
@@ -186,16 +185,13 @@ class CraftingWorldEnvAltObs(gym.GoalEnv):
         reset the environment
         """
         # save episode as gif
-        if self.store_gif is True and self.step_num != 0:
+        if self.store_gif is True and self.step_num != 0 and self.ep_no % self.render_save_rate == 0:
             anim = animation.ArtistAnimation(self.fig, self.ims, interval=100000, blit=False, repeat_delay=1000)
             tasknums = '-'.join([str(i) for i in np.where(self.desired_goal_vector[0] == 1)[0]])
             cpmleted = '-'.join([str(i) for i in np.where(self.achieved_goal_vector[0] == 1)[0]])
             anim.save(
                 'renders/env{}/E{}({})_{}({}).gif'.format(self.env_id, self.ep_no, self.step_num, tasknums, cpmleted),
                 writer=animation.PillowWriter(), dpi=100)
-
-        if self.render_flipping is True:
-            self.store_gif = render_next
 
         number_of_tasks = self.np_random.randint(self.number_of_tasks) + 1 if self.stacking is True else 1
         self.desired_goal_vector = np.zeros(shape=(1, len(self.task_list)), dtype=int)
@@ -233,7 +229,7 @@ class CraftingWorldEnvAltObs(gym.GoalEnv):
 
         self.step_num = 0
 
-        if self.store_gif:
+        if self.store_gif and self.ep_no % self.render_save_rate == 0:
             # reset gif
             plt.close('all')
             # if self.fig is None:
@@ -861,8 +857,6 @@ Desired Goals: {}""".format(self.ep_no, self.step_num, action_label, desired_goa
             os.makedirs('renders/env{}'.format(self.env_id), exist_ok=False)
             self.fig, self.ax = plt.subplots(1)
             self.ims = []  # storage of step renderings for gif
-            if self.render_flipping is True:
-                self.__render_gif()
 
     def one_hot(self, obj=None, agent=False, holding=None):
         row = [0 for _ in range(self.observation_vector_space.spaces['observation'].shape[2])]

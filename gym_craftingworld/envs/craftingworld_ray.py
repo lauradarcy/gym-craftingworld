@@ -56,7 +56,7 @@ class CraftingWorldEnvRay(gym.GoalEnv):
 
     metadata = {'render.modes': ['human', 'Non']}
 
-    def __init__(self, size=(STATE_W,STATE_H), max_steps=MAX_STEPS, store_gif=False, render_save_rate=1, task_list=TASK_LIST,
+    def __init__(self, size=(STATE_W,STATE_H), fixed_init_state=0, max_steps=MAX_STEPS, store_gif=False, render_save_rate=1, task_list=TASK_LIST,
                  selected_tasks=TASK_LIST, number_of_tasks=None, stacking=True, reward_style=None):
         """
         change the following parameters to create a custom environment
@@ -113,6 +113,9 @@ class CraftingWorldEnvRay(gym.GoalEnv):
 
         self.achieved_goal_vector = np.zeros(shape=(1, len(self.task_list)), dtype=int)
 
+        self.fixed_init_state = fixed_init_state
+        if self.fixed_init_state != 0:
+            self.fixed_state_list = self.generate_fixed_states(self.fixed_init_state)
         self.obs_one_hot, self.agent_pos = None, None
         self.obs_image = None
         self.INIT_OBS_VECTOR = None
@@ -143,6 +146,13 @@ class CraftingWorldEnvRay(gym.GoalEnv):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
 
+    def generate_fixed_states(self, num_states:int=1) -> list:
+        initial_states_list = []
+        for _ in range(num_states):
+            init_state, _ = self.sample_state()
+            initial_states_list.append(init_state)
+        return initial_states_list
+
     def reset(self, render_next=False):
         """
         reset the environment
@@ -165,7 +175,10 @@ class CraftingWorldEnvRay(gym.GoalEnv):
 
         self.achieved_goal_vector = np.zeros(shape=(1, len(self.task_list)), dtype=int)
 
-        self.obs_one_hot, self.agent_pos = self.sample_state()
+        if self.fixed_init_state == 0:
+            self.obs_one_hot, self.agent_pos = self.sample_state()
+        else:
+            self.obs_one_hot, self.agent_pos = self.generate_fixed_initial_state()
 
         self.INIT_OBS_VECTOR = self.obs_one_hot.copy()
 
@@ -614,6 +627,22 @@ Desired Goals: {}""".format(self.ep_no, self.step_num, action_label, desired_goa
 
         return state, agent_position
 
+    def generate_fixed_initial_state(self):
+        """
+        produces a observation with one of each object
+        :return obs: a sample observation
+        :return agent_position: position of the agent within the observation
+        """
+        initial_state = self.fixed_state_list[self.np_random.randint(self.fixed_init_state)]
+        assert initial_state.shape == self.observation_vector_space.spaces['observation'].shape
+        state = initial_state.copy()
+        state_idxs = np.where(state[:, :, 8] == 1)
+        agent_position = Coord(state_idxs[0][0],
+                               state_idxs[1][0],
+                               self.STATE_W - 1, self.STATE_H - 1)
+
+        return state, agent_position
+
     def eval_task_edit(self,old_contents_new_loc):
         """
         changes to the task success will only occur on the agent's location, so we don't need to iterate through
@@ -714,8 +743,6 @@ Desired Goals: {}""".format(self.ep_no, self.step_num, action_label, desired_goa
         #         if self.INIT_OBS_VECTOR[self.agent_pos.row,self.agent_pos.col,11]==1:
         #             print("move_hammer",move_hammer, self.INIT_OBS_VECTOR[self.agent_pos.row,self.agent_pos.col,11])
         #     # if self.obs_one_hot[]
-
-
 
     def short_circuit_check(self, a, b, n):  # this fn is basically just np.array_equals, but so much faster
         L = len(a) // n

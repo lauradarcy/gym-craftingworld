@@ -1,3 +1,4 @@
 from gym_craftingworld.envs.craftingworld_ray import CraftingWorldEnvRay
 from gym_craftingworld.envs.craftingworld_flat import CraftingWorldEnvFlat
 from gym_craftingworld.envs.craftingworld_altobs import CraftingWorldEnvAltObs
+from gym_craftingworld.envs.carftingworld_onehot import CraftingWorldEnvOneHot
